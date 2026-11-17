@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>איפה עומר?</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="איפה עומר">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#0d6b73">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700&family=Secular+One&display=swap" rel="stylesheet">
+<style>
+/* Layout: mobile = one column (date bar, today card, map, details, calendar). Desktop = map sticky on one side, details on the other. */
+:root{
+  --ink:#13242c; --muted:#5b6b72; --bg:#eef2f1; --card:#ffffff; --line:#d8e0df;
+  --accent:#0d6b73; --accent-soft:#d5ebe9; --sun:#e0912b;
+  --sea:#cfe0e3; --land:#f7f6f1; --land-route:#ece7d9; --border:#b9c4c2;
+  --good:#2e8b57; --trek:#16703a; --warn:#c98a10; --bad:#c2410c; --move:#3b6fb6;
+  --display:"Secular One","Heebo",system-ui,sans-serif; --body:"Heebo",system-ui,"Segoe UI",Arial,sans-serif;
+  --c-CL:#7e57c2; --c-AR:#f08c2e; --c-BO:#d63f9b; --c-PE:#8d6e4e; --c-EC:#43a047; --c-CO:#e8c21a;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ink:#e6eeee; --muted:#9cb0b3; --bg:#0d1a1f; --card:#13252c; --line:#24404a;
+  --accent:#4fc1c4; --accent-soft:#163b41; --sun:#f0a843;
+  --sea:#0f2a33; --land:#1d3640; --land-route:#27434c; --border:#3a5a63;
+  --good:#5cc489; --trek:#5fd38a; --warn:#e6b24a; --bad:#f07a4a; --move:#7ea8ea; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --ink:#e6eeee; --muted:#9cb0b3; --bg:#0d1a1f; --card:#13252c; --line:#24404a;
+  --accent:#4fc1c4; --accent-soft:#163b41; --sun:#f0a843;
+  --sea:#0f2a33; --land:#1d3640; --land-route:#27434c; --border:#3a5a63;
+  --good:#5cc489; --trek:#5fd38a; --warn:#e6b24a; --bad:#f07a4a; --move:#7ea8ea; color-scheme:dark;}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--sun);outline-offset:2px;border-radius:6px}
+.wrap{max-width:1180px;margin:0 auto;padding:16px}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;padding:8px 0 14px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,44px);line-height:1;margin:0;letter-spacing:.2px}
+.sub{color:var(--muted);font-size:14px;margin-top:6px}
+.clocks{display:flex;gap:8px;flex-wrap:wrap}
+.clock{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px 12px;display:flex;flex-direction:column;min-width:118px}
+.clock b{font-size:20px;font-variant-numeric:tabular-nums;font-weight:600;line-height:1.2}
+.clock span{font-size:12px;color:var(--muted)}
+.banner{background:var(--accent);color:#fff;border-radius:14px;padding:12px 16px;margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.banner b{font-size:18px}
+:root[data-theme="dark"] .banner{color:#06232a}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .banner{color:#06232a}}
+
+.datebar{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:8px;position:sticky;top:8px;z-index:20;box-shadow:0 4px 18px rgba(0,0,0,.06)}
+.navbtn{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--bg);cursor:pointer;display:grid;place-items:center}
+.navbtn:hover{border-color:var(--accent)}
+.navbtn:disabled{opacity:.35;cursor:default}
+.datemid{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px 12px;text-align:center}
+.dtitle{font-weight:700;font-size:18px}
+.dnum{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.datemid input[type=date]{border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:5px 8px;font-size:14px}
+.todaybtn{border:1px solid var(--accent);color:var(--accent);background:transparent;border-radius:999px;padding:4px 12px;font-weight:600;cursor:pointer;font-size:14px}
+.todaybtn[aria-pressed="true"]{background:var(--accent);color:var(--card)}
+
+.main{display:grid;gap:16px;margin-top:16px}
+@media (min-width:960px){ .main{grid-template-columns:minmax(330px,.75fr) minmax(0,1.6fr);align-items:stretch} .main #map{height:600px} }
+.hero{padding:24px;border-top:6px solid var(--accent)}
+.details{display:grid;gap:12px;margin-top:22px}
+@media (min-width:900px){ .details{grid-template-columns:repeat(3,minmax(0,1fr));align-items:start} }
+.card.minor{background:color-mix(in srgb,var(--card) 70%,var(--bg));padding:14px 16px;border-radius:14px}
+.card.minor h2{font-size:15px;color:var(--muted);font-weight:600;margin-bottom:10px}
+.card.minor h2 svg{width:17px;height:17px;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px}
+.stack{display:grid;gap:16px}
+.eyebrow{font-size:13px;color:var(--muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cdot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.place{font-family:var(--display);font-weight:400;font-size:clamp(32px,6vw,48px);line-height:1.1;margin:6px 0 2px;text-wrap:balance}
+.local{color:var(--muted);font-size:14px;direction:ltr;text-align:right}
+.dtext{margin:14px 0 0;max-width:62ch;font-size:17px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 12px;font-size:14px;font-weight:600;border:1px solid transparent}
+.chip svg{width:16px;height:16px}
+.n-ok{background:color-mix(in srgb,var(--good) 15%,transparent);color:var(--good)}
+.n-low{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.n-none{background:color-mix(in srgb,var(--bad) 15%,transparent);color:var(--bad)}
+.n-move{background:color-mix(in srgb,var(--move) 15%,transparent);color:var(--move)}
+.k-chip{background:var(--accent-soft);color:var(--accent)}
+.quick{margin-top:18px;padding-top:14px;border-top:1px solid var(--line);display:grid;gap:8px;font-size:15px}
+.quick div{display:flex;gap:8px;align-items:flex-start}
+.quick svg{width:18px;height:18px;color:var(--accent);flex:none;margin-top:3px}
+.flag{margin-top:12px;border-inline-start:4px solid var(--sun);background:color-mix(in srgb,var(--sun) 12%,transparent);padding:8px 12px;border-radius:8px;font-size:14px}
+
+.mapcard{padding:0;overflow:hidden;position:relative}
+#map{display:block;width:100%;height:clamp(340px,58vh,640px);background:var(--sea);touch-action:none;cursor:grab}
+.maptools{position:absolute;top:10px;inset-inline-start:10px;display:flex;flex-direction:column;gap:6px}
+.maptools button{width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--card);cursor:pointer;display:grid;place-items:center;font-size:20px;font-weight:600}
+.mapfoot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;border-top:1px solid var(--line);font-size:14px}
+.mapfoot a{color:var(--accent);font-weight:600;text-decoration:none;display:inline-flex;gap:6px;align-items:center}
+.mapfoot a:hover{text-decoration:underline}
+.legend{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:13px}
+.legend i{display:inline-block;width:22px;height:0;border-top:3px solid var(--accent);vertical-align:middle;margin-inline-end:4px}
+.legend i.dash{border-top-style:dashed}
+.legend i.today{border-color:var(--sun)}
+.legend .tri-l{color:var(--trek);margin-inline-end:4px;font-size:13px}
+svg .tlbl{fill:var(--trek);font-weight:700}
+.maperr{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:14px;padding:20px;text-align:center}
+
+h2{font-size:17px;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+h2 svg{width:20px;height:20px;color:var(--accent)}
+.legs{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.leg{display:grid;grid-template-columns:40px 1fr;gap:12px;align-items:start}
+.leg .ic{width:40px;height:40px;border-radius:12px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
+.leg .ic svg{width:20px;height:20px}
+.leg .ic.flight{background:color-mix(in srgb,var(--move) 16%,transparent);color:var(--move)}
+.leg .ic.ferry,.leg .ic.boat{background:color-mix(in srgb,var(--c-CL) 18%,transparent);color:var(--c-CL)}
+.leg .ic.walk{background:color-mix(in srgb,var(--good) 15%,transparent);color:var(--good)}
+.leg .route{font-weight:600}
+.leg .meta{font-size:14px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 10px}
+.leg .t{font-variant-numeric:tabular-nums;color:var(--ink);font-weight:500}
+bdi{unicode-bidi:isolate}
+.ok{color:var(--good);font-weight:600}
+.empty{color:var(--muted);font-size:15px;margin:0}
+.sleep{display:flex;gap:12px;align-items:flex-start}
+.sleep .big{font-weight:700;font-size:18px}
+.st{display:inline-block;border-radius:6px;padding:1px 8px;font-size:13px;font-weight:600;margin-top:4px}
+.st-booked{background:color-mix(in srgb,var(--good) 15%,transparent);color:var(--good)}
+.st-open{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.st-tent,.st-included{background:var(--accent-soft);color:var(--accent)}
+.st-transit,.st-home{background:color-mix(in srgb,var(--move) 15%,transparent);color:var(--move)}
+.reach p{margin:6px 0 0}
+.photobtn{margin-top:10px;display:inline-flex;align-items:center;gap:5px;background:transparent;color:var(--accent);border:1px solid var(--accent);text-decoration:none;font-weight:600;font-size:13px;padding:3px 10px;border-radius:999px}
+.photobtn:hover{background:var(--accent-soft)}
+.photobtn svg{width:14px;height:14px}
+.reach .upcoming{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line);font-size:15px}
+.linkish{background:none;border:0;padding:0;color:var(--accent);font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+
+.cal-head{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px}
+.cal-legend{display:flex;flex-wrap:wrap;gap:10px;font-size:13px;color:var(--muted)}
+.cal-legend span{display:inline-flex;gap:5px;align-items:center}
+.months{display:grid;gap:18px;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));margin-top:14px}
+.month h3{font-size:15px;margin:0 0 6px}
+.wk{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.wk .h{font-size:11px;color:var(--muted);text-align:center}
+.dcell{aspect-ratio:1;border-radius:8px;border:1px solid transparent;font-size:13px;font-variant-numeric:tabular-nums;display:grid;place-items:center;position:relative;cursor:pointer;background:transparent;padding:0}
+.dcell.out{cursor:default;color:var(--muted);opacity:.35}
+.dcell.in{background:color-mix(in srgb,var(--cc) 40%,var(--card));font-weight:600}
+.dcell.in:hover{border-color:var(--ink)}
+.dcell.none::after{content:"";position:absolute;bottom:3px;left:50%;transform:translateX(-50%);width:14px;height:3px;border-radius:2px;background:var(--bad)}
+.dcell.travel::before{content:"";position:absolute;top:3px;right:3px;width:5px;height:5px;border-radius:50%;background:var(--ink);opacity:.55}
+.dcell.sel{outline:2.5px solid var(--ink);outline-offset:0}
+.dcell.today{box-shadow:inset 0 0 0 2px var(--sun)}
+.stages{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.stages button{background:transparent;border:1px solid var(--line);border-radius:999px;padding:3px 10px;cursor:pointer;font-size:13px;color:var(--muted);display:inline-flex;gap:6px;align-items:center}
+.stages button:hover{border-color:var(--accent);color:var(--ink)}
+.stages button.cur{border-color:var(--accent);color:var(--accent);font-weight:600}
+.stages .num{font-weight:700}
+footer{color:var(--muted);font-size:13px;margin:24px 0 40px;max-width:70ch}
+svg .lbl{font-family:var(--body);font-weight:600;fill:var(--ink);paint-order:stroke;stroke:var(--land);stroke-linejoin:round}
+svg .clbl{font-family:var(--display);fill:var(--muted);opacity:.7}
+@keyframes pulse{0%{r:var(--r0);opacity:.55}100%{r:var(--r1);opacity:0}}
+.pulse{animation:pulse 1.8s ease-out infinite}
+#map.moving .pulse{animation:none;opacity:0}
+@media (prefers-reduced-motion:reduce){.pulse{animation:none;opacity:.25}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>איפה עומר?</h1>
+      <div class="sub">דרום אמריקה · 27.11.2026–12.5.2027 · לפי התכנון, עודכן <span id="upd"></span></div>
+    </div>
+    <div class="clocks" aria-live="off">
+      <div class="clock"><b id="clkO">--:--</b><span id="clkOl">השעה אצל עומר</span></div>
+      <div class="clock"><b id="clkI">--:--</b><span>השעה בישראל</span></div>
+    </div>
+  </header>
+
+  <div id="banner"></div>
+
+  <nav class="datebar" aria-label="בחירת תאריך">
+    <button class="navbtn" id="prev" aria-label="היום הקודם"><i data-lucide="chevron-right"></i></button>
+    <div class="datemid">
+      <div><div class="dtitle" id="dtitle"></div><div class="dnum" id="dnum"></div></div>
+      <button class="todaybtn" id="todayBtn" aria-pressed="false">היום</button>
+    </div>
+    <button class="navbtn" id="next" aria-label="היום הבא"><i data-lucide="chevron-left"></i></button>
+  </nav>
+
+  <div class="main">
+    <section class="card hero" id="hero" aria-live="polite"></section>
+    <section class="card mapcard">
+      <svg id="map" role="img" aria-label="מפת המסלול בדרום אמריקה"></svg>
+      <div class="maptools">
+        <button id="zin" aria-label="התקרב">+</button>
+        <button id="zout" aria-label="התרחק">−</button>
+        <button id="zall" aria-label="כל המסלול" title="כל המסלול"><i data-lucide="maximize-2"></i></button>
+      </div>
+      <div class="mapfoot">
+        <div class="legend"><span><i></i>המסלול</span><span><i class="dash"></i>טיסה</span><span><i class="today"></i>המעבר של היום</span><span><b class="tri-l">▲</b>טרק</span></div>
+        <a id="gmaps" href="#" target="_blank" rel="noopener"><i data-lucide="map-pin"></i>לפתוח בגוגל מפות</a>
+      </div>
+    </section>
+  </div>
+
+  <div class="details">
+    <section class="card minor"><h2><i data-lucide="route"></i>המעברים של היום</h2><ul class="legs" id="legs"></ul></section>
+    <section class="card minor"><h2><i data-lucide="bed-double"></i>איפה ישן הלילה</h2><div id="sleep"></div></section>
+    <section class="card minor reach"><h2><i data-lucide="signal"></i>אפשר לדבר איתו?</h2><div id="reach"></div></section>
+  </div>
+
+  <section class="card minor" style="margin-top:16px">
+    <div class="cal-head">
+      <h2 style="margin:0"><i data-lucide="calendar-days"></i>כל הימים</h2>
+      <div class="cal-legend" id="calLegend"></div>
+    </div>
+    <ul class="stages" id="stages" aria-label="שלבי הטיול"></ul>
+    <div class="months" id="months"></div>
+  </section>
+
+  <footer>
+    זה התכנון של הטיול, לא מיקום חי, ולפעמים יום זז פה ושם. השעות הן בשעון המקומי של המקום שבו עומר נמצא.
+    בימים שמסומנים "בטבע, בלי קליטה" עומר בטרק או במקום שקט ויפה. זה חלק מהתכנון, ואין סיבה לדאגה אם לא מגיעות הודעות — הוא יכתוב כשיחזור לקשר.
+  </footer>
+</div>
+
+<script id="trip" type="application/json">{"places":{"scl":{"n":"סנטיאגו","en":"Santiago · Providencia","lat":-33.4219,"lon":-70.6086,"c":"CL","tz":"America/Santiago"},"valpo":{"n":"ולפראיסו","en":"Valparaíso","lat":-33.041,"lon":-71.626,"c":"CL","tz":"America/Santiago"},"pvaras":{"n":"פוארטו וארס","en":"Puerto Varas","lat":-41.318,"lon":-72.985,"c":"CL","tz":"America/Santiago"},"cocha":{"n":"כפר קוצ'אמו","en":"Cochamó","lat":-41.493,"lon":-72.307,"c":"CL","tz":"America/Santiago"},"junta":{"n":"לה חונטה, עמק קוצ'אמו","en":"La Junta, Valle Cochamó","lat":-41.417,"lon":-72.129,"c":"CL","tz":"America/Santiago"},"ferry":{"n":"מעבורת לילה לצ'איטן","en":"Naviera Austral · Golfo de Ancud","lat":-42.2,"lon":-72.95,"c":"CL","tz":"America/Santiago"},"chaiten":{"n":"צ'איטן","en":"Chaitén","lat":-42.916,"lon":-72.708,"c":"CL","tz":"America/Santiago"},"futa":{"n":"פוטאלאופו","en":"Futaleufú","lat":-43.186,"lon":-71.867,"c":"CL","tz":"America/Santiago"},"puyu":{"n":"פויואפי","en":"Puyuhuapi","lat":-44.325,"lon":-72.559,"c":"CL","tz":"America/Santiago"},"coy":{"n":"קויאיקה","en":"Coyhaique","lat":-45.571,"lon":-72.068,"c":"CL","tz":"America/Santiago"},"cc1":{"n":"טרק סרו קסטייו — לילה 1","en":"Cerro Castillo · Campamento Río Turbio","lat":-46.0082,"lon":-72.1041,"c":"CL","tz":"America/Santiago"},"cc2":{"n":"טרק סרו קסטייו — לילה 2","en":"Cerro Castillo · El Bosque","lat":-46.0642,"lon":-72.1692,"c":"CL","tz":"America/Santiago"},"cc3":{"n":"טרק סרו קסטייו — לילה 3","en":"Cerro Castillo · Campamento Neozelandés","lat":-46.0616,"lon":-72.238,"c":"CL","tz":"America/Santiago"},"horq":{"n":"לאס הורקטס","en":"Las Horquetas","lat":-45.9808,"lon":-71.9549,"c":"CL","tz":"America/Santiago"},"vcc":{"n":"וייה סרו קסטייו","en":"Villa Cerro Castillo","lat":-46.1212,"lon":-72.159,"c":"CL","tz":"America/Santiago"},"rtranq":{"n":"פוארטו ריו טרנקילו","en":"Puerto Río Tranquilo","lat":-46.625,"lon":-72.675,"c":"CL","tz":"America/Santiago"},"cochr":{"n":"קוקראנה","en":"Cochrane","lat":-47.253,"lon":-72.574,"c":"CL","tz":"America/Santiago"},"tortel":{"n":"קאלטה טורטל","en":"Caleta Tortel","lat":-47.798,"lon":-73.535,"c":"CL","tz":"America/Santiago"},"ohig":{"n":"וייה אוהיגינס","en":"Villa O'Higgins","lat":-48.467,"lon":-72.559,"c":"CL","tz":"America/Santiago"},"pnorte":{"n":"פונטה נורטה, לאגו דל דסיירטו","en":"Punta Norte · Lago del Desierto","lat":-48.9985,"lon":-72.8395,"c":"AR","tz":"America/Argentina/Buenos_Aires"},"chalten":{"n":"אל צ'לטן","en":"El Chaltén","lat":-49.331,"lon":-72.886,"c":"AR","tz":"America/Argentina/Buenos_Aires"},"hu1":{"n":"מעגל הואמול — לילה 1","en":"Huemul · Campamento Laguna Toro","lat":-49.385,"lon":-73.0457,"c":"AR","tz":"America/Argentina/Buenos_Aires"},"hu2":{"n":"מעגל הואמול — לילה 2","en":"Huemul · Refugio Paso del Viento","lat":-49.4257,"lon":-73.1067,"c":"AR","tz":"America/Argentina/Buenos_Aires"},"hu3":{"n":"מעגל הואמול — לילה 3","en":"Huemul · Bahía de los Témpanos","lat":-49.4799,"lon":-72.986,"c":"AR","tz":"America/Argentina/Buenos_Aires"},"calaf":{"n":"אל קלפטה","en":"El Calafate","lat":-50.338,"lon":-72.265,"c":"AR","tz":"America/Argentina/Buenos_Aires"},"natales":{"n":"פוארטו נטאלס","en":"Puerto Natales","lat":-51.727,"lon":-72.5,"c":"CL","tz":"America/Punta_Arenas"},"pgrande":{"n":"פאינה גרנדה, טורס דל פאינה","en":"Paine Grande · Torres del Paine","lat":-51.0723,"lon":-73.0939,"c":"CL","tz":"America/Punta_Arenas"},"frances":{"n":"קמפינג פרנסס, טורס דל פאינה","en":"Camping Francés · Torres del Paine","lat":-51.0271,"lon":-73.0251,"c":"CL","tz":"America/Punta_Arenas"},"central":{"n":"סנטרל, טורס דל פאינה","en":"Central · Torres del Paine","lat":-50.9656,"lon":-72.866,"c":"CL","tz":"America/Punta_Arenas"},"mgrey":{"n":"מיראדור גריי","en":"Mirador Grey · Refugio Grey","lat":-51.0081,"lon":-73.176,"c":"CL","tz":"America/Punta_Arenas"},"britanico":{"n":"תצפית בריטניקו","en":"Mirador Británico","lat":-50.9827,"lon":-73.0538,"c":"CL","tz":"America/Punta_Arenas"},"mtorres":{"n":"מיראדור לאס טורס","en":"Mirador Base Las Torres","lat":-50.9427,"lon":-72.9497,"c":"CL","tz":"America/Punta_Arenas"},"parenas":{"n":"פונטה ארנס","en":"Punta Arenas","lat":-53.163,"lon":-70.917,"c":"CL","tz":"America/Punta_Arenas"},"pwill":{"n":"פוארטו וויליאמס","en":"Puerto Williams","lat":-54.934,"lon":-67.616,"c":"CL","tz":"America/Punta_Arenas"},"nv1":{"n":"דיינטס דה נבארינו — לילה 1","en":"Dientes de Navarino · L. del Salto","lat":-54.9918,"lon":-67.6815,"c":"CL","tz":"America/Punta_Arenas"},"nv2":{"n":"דיינטס דה נבארינו — לילה 2","en":"Dientes de Navarino · L. Escondida","lat":-54.9997,"lon":-67.7729,"c":"CL","tz":"America/Punta_Arenas"},"nv3":{"n":"דיינטס דה נבארינו — לילה 3","en":"Dientes de Navarino · L. Martillo","lat":-54.9531,"lon":-67.7626,"c":"CL","tz":"America/Punta_Arenas"},"ush":{"n":"אושואיה","en":"Ushuaia","lat":-54.807,"lon":-68.306,"c":"AR","tz":"America/Argentina/Buenos_Aires"},"madryn":{"n":"פוארטו מדרין","en":"Puerto Madryn","lat":-42.769,"lon":-65.038,"c":"AR","tz":"America/Argentina/Buenos_Aires"},"bue":{"n":"בואנוס איירס","en":"Buenos Aires · Recoleta","lat":-34.5906,"lon":-58.4014,"c":"AR","tz":"America/Argentina/Buenos_Aires"},"mza":{"n":"מנדוסה","en":"Mendoza","lat":-32.89,"lon":-68.845,"c":"AR","tz":"America/Argentina/Buenos_Aires"},"busmc":{"n":"אוטובוס לילה מנדוסה ← קורדובה","en":"Ruta 7 · San Luis","lat":-32.3,"lon":-66.4,"c":"AR","tz":"America/Argentina/Buenos_Aires"},"cba":{"n":"קורדובה","en":"Córdoba","lat":-31.417,"lon":-64.183,"c":"AR","tz":"America/Argentina/Buenos_Aires"},"buscm":{"n":"אוטובוס לילה קורדובה ← מרסדס","en":"Ruta 19 · Santa Fe","lat":-30.6,"lon":-61.0,"c":"AR","tz":"America/Argentina/Buenos_Aires"},"ibera":{"n":"אסטרוס דל איברה","en":"Colonia Carlos Pellegrini · Iberá","lat":-28.537,"lon":-57.175,"c":"AR","tz":"America/Argentina/Buenos_Aires"},"buscs":{"n":"אוטובוס לילה קוריינטס ← סלטה","en":"Ruta 16 · Chaco","lat":-26.4,"lon":-61.5,"c":"AR","tz":"America/Argentina/Buenos_Aires"},"salta":{"n":"סלטה","en":"Salta","lat":-24.789,"lon":-65.411,"c":"AR","tz":"America/Argentina/Buenos_Aires"},"cafa":{"n":"קפיאטה","en":"Cafayate","lat":-26.073,"lon":-65.976,"c":"AR","tz":"America/Argentina/Buenos_Aires"},"iruya":{"n":"אירויה","en":"Iruya","lat":-22.791,"lon":-65.214,"c":"AR","tz":"America/Argentina/Buenos_Aires"},"quiaca":{"n":"לה קיאקה","en":"La Quiaca","lat":-22.105,"lon":-65.593,"c":"AR","tz":"America/Argentina/Buenos_Aires"},"tupiza":{"n":"טופיסה","en":"Tupiza","lat":-21.4375,"lon":-65.7158,"c":"BO","tz":"America/La_Paz"},"j1":{"n":"סיור הג'יפים — לילה 1","en":"Sud Lípez · San Antonio de Lípez","lat":-21.8732,"lon":-66.8824,"c":"BO","tz":"America/La_Paz"},"j2":{"n":"סיור הג'יפים — לגונה קולורדה","en":"Laguna Colorada","lat":-22.2,"lon":-67.78,"c":"BO","tz":"America/La_Paz"},"j3":{"n":"סיור הג'יפים — מלון מלח בשולי סלאר","en":"Salar de Uyuni · borde","lat":-20.62,"lon":-67.55,"c":"BO","tz":"America/La_Paz"},"potosi":{"n":"פוטוסי","en":"Potosí","lat":-19.589,"lon":-65.754,"c":"BO","tz":"America/La_Paz"},"sucre":{"n":"סוקרה","en":"Sucre","lat":-19.048,"lon":-65.26,"c":"BO","tz":"America/La_Paz"},"bussc":{"n":"אוטובוס לילה סוקרה ← קוצ'במבה","en":"Ruta 7 · Aiquile","lat":-18.2,"lon":-65.2,"c":"BO","tz":"America/La_Paz"},"toro":{"n":"טורוטורו","en":"Torotoro","lat":-18.134,"lon":-65.763,"c":"BO","tz":"America/La_Paz"},"lpz":{"n":"לה פאס","en":"La Paz","lat":-16.5,"lon":-68.133,"c":"BO","tz":"America/La_Paz"},"rurre":{"n":"רוראנבקה — ג'ונגל ופמפס","en":"Rurrenabaque · Madidi / Pampas","lat":-14.3,"lon":-67.3,"c":"BO","tz":"America/La_Paz"},"copa":{"n":"קופקבנה, אגם טיטיקקה","en":"Copacabana","lat":-16.166,"lon":-69.086,"c":"BO","tz":"America/La_Paz"},"puno":{"n":"פונו, אגם טיטיקקה","en":"Puno","lat":-15.84,"lon":-70.022,"c":"PE","tz":"America/Lima"},"cabana":{"n":"קבנקונדה, קניון קולקה","en":"Cabanaconde · Colca","lat":-15.62,"lon":-71.979,"c":"PE","tz":"America/Lima"},"sangalle":{"n":"נווה המדבר סנגאייה, קניון קולקה","en":"Oasis de Sangalle","lat":-15.615,"lon":-71.952,"c":"PE","tz":"America/Lima"},"areq":{"n":"ארקיפה","en":"Arequipa","lat":-16.399,"lon":-71.537,"c":"PE","tz":"America/Lima"},"busac":{"n":"אוטובוס לילה ארקיפה ← קוסקו","en":"Ruta 3S · Juliaca","lat":-15.0,"lon":-71.0,"c":"PE","tz":"America/Lima"},"cusco":{"n":"קוסקו","en":"Cusco","lat":-13.517,"lon":-71.978,"c":"PE","tz":"America/Lima"},"ch1":{"n":"טרק צ'וקקיראו — צ'יקיסקה","en":"Choquequirao · Chiquisca","lat":-13.457,"lon":-72.84,"c":"PE","tz":"America/Lima"},"ch2":{"n":"טרק צ'וקקיראו — מרמפטה","en":"Choquequirao · Marampata","lat":-13.404,"lon":-72.861,"c":"PE","tz":"America/Lima"},"ch3":{"n":"טרק צ'וקקיראו — ליד האתר","en":"Choquequirao","lat":-13.3922,"lon":-72.8722,"c":"PE","tz":"America/Lima"},"ollan":{"n":"העמק הקדוש — אויאנטייטמבו","en":"Ollantaytambo","lat":-13.258,"lon":-72.263,"c":"PE","tz":"America/Lima"},"aguas":{"n":"אגואס קליינטס","en":"Aguas Calientes","lat":-13.155,"lon":-72.525,"c":"PE","tz":"America/Lima"},"lima":{"n":"לימה","en":"Lima · Miraflores","lat":-12.121,"lon":-77.03,"c":"PE","tz":"America/Lima"},"buslh":{"n":"אוטובוס לילה לימה ← הוארס","en":"Ruta 16 · Conococha","lat":-10.1,"lon":-77.3,"c":"PE","tz":"America/Lima"},"huaraz":{"n":"הוארס","en":"Huaraz","lat":-9.528,"lon":-77.528,"c":"PE","tz":"America/Lima"},"sc1":{"n":"טרק סנטה קרוז — לילה 1","en":"Santa Cruz · Paria","lat":-8.965,"lon":-77.556,"c":"PE","tz":"America/Lima"},"sc2":{"n":"טרק סנטה קרוז — לילה 2","en":"Santa Cruz · Taullipampa","lat":-8.919,"lon":-77.6078,"c":"PE","tz":"America/Lima"},"sc3":{"n":"טרק סנטה קרוז — לילה 3","en":"Santa Cruz · Llamacorral","lat":-8.9455,"lon":-77.7012,"c":"PE","tz":"America/Lima"},"busht":{"n":"אוטובוס לילה הוארס ← טרוחיו","en":"Casma","lat":-9.47,"lon":-78.3,"c":"PE","tz":"America/Lima"},"truji":{"n":"טרוחיו והואנצ'קו","en":"Huanchaco","lat":-8.079,"lon":-79.121,"c":"PE","tz":"America/Lima"},"bustc":{"n":"אוטובוס לילה טרוחיו ← צ'צ'פויאס","en":"Cajamarca · Celendín","lat":-7.0,"lon":-78.3,"c":"PE","tz":"America/Lima"},"chacha":{"n":"צ'צ'פויאס","en":"Chachapoyas","lat":-6.231,"lon":-77.869,"c":"PE","tz":"America/Lima"},"signa":{"n":"סן איגנסיו","en":"San Ignacio","lat":-5.146,"lon":-79.001,"c":"PE","tz":"America/Lima"},"vilca":{"n":"וילקבמבה","en":"Vilcabamba","lat":-4.261,"lon":-79.222,"c":"EC","tz":"America/Guayaquil"},"cuenca":{"n":"קואנקה","en":"Cuenca","lat":-2.897,"lon":-79.005,"c":"EC","tz":"America/Guayaquil"},"latac":{"n":"לטקונגה","en":"Latacunga","lat":-0.935,"lon":-78.616,"c":"EC","tz":"America/Guayaquil"},"isin":{"n":"איסינליבי (לולאת קילוטואה)","en":"Isinliví","lat":-0.76,"lon":-78.895,"c":"EC","tz":"America/Guayaquil"},"chugch":{"n":"צ'וגצ'ילן (לולאת קילוטואה)","en":"Chugchilán","lat":-0.803,"lon":-78.923,"c":"EC","tz":"America/Guayaquil"},"quilo":{"n":"קילוטואה","en":"Quilotoa","lat":-0.856,"lon":-78.907,"c":"EC","tz":"America/Guayaquil"},"quito":{"n":"קיטו","en":"Quito · La Floresta","lat":-0.207,"lon":-78.488,"c":"EC","tz":"America/Guayaquil"},"gsc":{"n":"גלפגוס — סנטה קרוז","en":"Puerto Ayora · Santa Cruz","lat":-0.743,"lon":-90.314,"c":"EC","tz":"Pacific/Galapagos"},"gsx":{"n":"גלפגוס — סן כריסטובל","en":"Puerto Baquerizo Moreno","lat":-0.901,"lon":-89.61,"c":"EC","tz":"Pacific/Galapagos"},"bog":{"n":"בוגוטה","en":"Bogotá · Chapinero","lat":4.649,"lon":-74.063,"c":"CO","tz":"America/Bogota"},"leyva":{"n":"וייה דה לייבה","en":"Villa de Leyva","lat":5.634,"lon":-73.524,"c":"CO","tz":"America/Bogota"},"barich":{"n":"ברצ'רה וסן חיל","en":"Barichara","lat":6.635,"lon":-73.223,"c":"CO","tz":"America/Bogota"},"jardin":{"n":"חרדין","en":"Jardín","lat":5.599,"lon":-75.819,"c":"CO","tz":"America/Bogota"}},"stages":[{"a":"2026-11-27","b":"2026-12-27","n":"צ'ילה: סנטיאגו והקרטרה אוסטרל"},{"a":"2026-12-28","b":"2027-01-22","n":"פטגוניה וקצה העולם"},{"a":"2027-01-23","b":"2027-02-13","n":"ארגנטינה: מהאוקיינוס לאנדים"},{"a":"2027-02-14","b":"2027-03-10","n":"בוליביה"},{"a":"2027-03-11","b":"2027-04-15","n":"פרו"},{"a":"2027-04-16","b":"2027-04-29","n":"אקוודור: רמות וגלפגוס"},{"a":"2027-04-30","b":"2027-05-12","n":"קולומביה: פנים הארץ ושבוע על אופנוע"}],"days":[{"d":"2026-11-27","p":"scl","t":"טס לדרום אמריקה","x":"עומר טס מנתב\"ג לסנטיאגו. נוחת ב־22:30 שעון צ'ילה, נהג של המלון מחכה לו בשדה ולוקח אותו ישר למלון, בשכונת פרובידנסיה הנעימה.","legs":[{"m":"flight","f":"תל אביב","to":"סנטיאגו","dep":"","arr":"22:30","note":"עם קונקשן","ok":false},{"m":"taxi","f":"שדה התעופה","to":"המלון","dep":"23:30","arr":"00:15","note":"מונית חינם של המלון","ok":false}],"sl":{"n":"Hotel Los Españoles Plus, פרובידנסיה","s":"booked","note":"Av. Santa María 2828","q":"Hotel Los Españoles Plus, Providencia, Santiago"},"net":"move","nn":"בטיסה כל היום. הודעה כשינחת.","k":"travel","fl":""},{"d":"2026-11-28","p":"scl","t":"סנטיאגו","x":"יום ראשון בסנטיאגו: מנוחה מהטיסה והתאקלמות בעיר.","legs":[],"sl":{"n":"Hotel Los Españoles Plus, פרובידנסיה","s":"booked","note":"","q":"Hotel Los Españoles Plus, Providencia, Santiago"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2026-11-29","p":"scl","t":"סנטיאגו","x":"סנטיאגו: סרו סן כריסטובל, שכונות בריו לסטרייה ובריו איטליה, שוק La Vega.","legs":[],"sl":{"n":"Hotel Los Españoles Plus, פרובידנסיה","s":"booked","note":"","q":"Hotel Los Españoles Plus, Providencia, Santiago"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2026-11-30","p":"scl","t":"סנטיאגו","x":"טיול יום ל־Cajón del Maipo, עמק הרים כ־50 ק\"מ מהעיר, או השלמות ציוד בעיר.","legs":[],"sl":{"n":"Hotel Los Españoles Plus, פרובידנסיה","s":"booked","note":"","q":"Hotel Los Españoles Plus, Providencia, Santiago"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2026-12-01","p":"valpo","t":"סנטיאגו ← ולפראיסו","x":"נסיעה קצרה לעיר הנמל הצבעונית. גבעות, מעליות ישנות וגרפיטי.","legs":[{"m":"bus","f":"סנטיאגו","to":"ולפראיסו","dep":"","arr":"","note":"Turbus / Pullman, כל רבע שעה, כ־1:45","ok":false}],"sl":{"n":"ולפראיסו","s":"open","note":"","q":"Valparaíso, Chile"},"net":"ok","nn":"","k":"travel","fl":""},{"d":"2026-12-02","p":"valpo","t":"ולפראיסו","x":"יום בוולפראיסו: הגבעות, La Sebastiana — הבית של פבלו נרודה, והנמל.","legs":[],"sl":{"n":"ולפראיסו","s":"open","note":"","q":"Valparaíso, Chile"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2026-12-03","p":"pvaras","t":"טיסה דרומה לפוארטו וארס","x":"יום של נסיעה דרומה: אוטובוס לסנטיאגו, טיסה קצרה לפוארטו מונט, והמשך לפוארטו וארס — עיירה ציורית על אגם ינקיאואה מול הר הגעש אוסורנו. אחר הצהריים מסתובב בעיירה ומתארגן לימים בעמק.","legs":[{"m":"bus","f":"ולפראיסו","to":"סנטיאגו (Pajaritos)","dep":"07:00","arr":"09:00","note":"","ok":false},{"m":"taxi","f":"Pajaritos","to":"שדה התעופה","dep":"09:00","arr":"09:30","note":"","ok":false},{"m":"flight","f":"סנטיאגו","to":"פוארטו מונט","dep":"11:15","arr":"13:05","note":"LATAM","ok":false},{"m":"bus","f":"שדה התעופה","to":"פוארטו וארס","dep":"13:30","arr":"14:30","note":"שאטל","ok":false}],"sl":{"n":"פוארטו וארס","s":"open","note":"","q":"Puerto Varas, Chile"},"net":"move","nn":"","k":"travel","fl":""},{"d":"2026-12-04","p":"cocha","t":"פוארטו וארס ← כפר קוצ'אמו","x":"אוטובוס כפרי לכפר קוצ'אמו, בכניסה לעמק. לילה במלון בכפר.","legs":[{"m":"bus","f":"פוארטו מונט / וארס","to":"כפר קוצ'אמו","dep":"09:00","arr":"12:00","note":"2.5–3.5 שעות","ok":false}],"sl":{"n":"Hotel Cochamó","s":"booked","note":"","q":"Hotel Cochamó, Cochamó, Chile"},"net":"low","nn":"כפר קטן — קליטה חלשה.","k":"travel","fl":""},{"d":"2026-12-05","p":"junta","t":"לעמק לה חונטה","x":"הולך בשביל יער לעמק לה חונטה, שמכונה \"היוסמיטי של צ'ילה\" — עמק ירוק בין קירות גרניט ענקיים. שלושה לילות בקמפינג מסודר בעמק.","legs":[{"m":"walk","f":"תחילת השביל","to":"לה חונטה","dep":"09:00","arr":"15:00","note":"שביל יער","ok":false}],"sl":{"n":"Camping Trawen, לה חונטה","s":"tent","note":"","q":"Camping Trawen, La Junta, Cochamó"},"net":"none","nn":"בעמק אין קליטה, וזה רגיל. יחזור לקשר ב־8.12 אחר הצהריים.","k":"trek","fl":""},{"d":"2026-12-06","p":"junta","t":"יום טיול בעמק קוצ'אמו","x":"יום טיול מלא מהקמפינג — טרינידד, לה פלומה או אל ארקו, לפי מזג האוויר.","legs":[],"sl":{"n":"Camping Trawen, לה חונטה","s":"tent","note":"","q":"Camping Trawen, La Junta, Cochamó"},"net":"none","nn":"אין קליטה בעמק.","k":"trek","fl":""},{"d":"2026-12-07","p":"junta","t":"יום טיול בעמק קוצ'אמו","x":"עוד יום טיול בעמק. ערב אחרון באוהל.","legs":[],"sl":{"n":"Camping Trawen, לה חונטה","s":"tent","note":"","q":"Camping Trawen, La Junta, Cochamó"},"net":"none","nn":"אין קליטה בעמק. חוזר לקשר מחר אחר הצהריים.","k":"trek","fl":""},{"d":"2026-12-08","p":"cocha","t":"ירידה לכפר קוצ'אמו","x":"יורד מהעמק בחזרה לכפר: מלון, מקלחת חמה וערב רגוע.","legs":[{"m":"walk","f":"לה חונטה","to":"כפר קוצ'אמו","dep":"08:00","arr":"14:00","note":"","ok":false}],"sl":{"n":"Hotel Cochamó","s":"booked","note":"","q":"Hotel Cochamó, Cochamó, Chile"},"net":"low","nn":"חוזר לקשר אחר הצהריים, כשמגיע לכפר.","k":"trek","fl":""},{"d":"2026-12-09","p":"ferry","t":"מעבורת לילה לצ'איטן","x":"אוטובוס לפוארטו מונט, ובערב עולה על מעבורת לילה של 9 שעות לצ'איטן. ישן בתוך המעבורת על המזרן ושק השינה שלו.","legs":[{"m":"bus","f":"כפר קוצ'אמו","to":"פוארטו מונט","dep":"13:00","arr":"16:00","note":"","ok":false},{"m":"ferry","f":"פוארטו מונט (Angelmó)","to":"צ'איטן","dep":"23:00","arr":"08:00","note":"Naviera Austral","ok":false}],"sl":{"n":"על המעבורת","s":"transit","note":"עם המזרן ושק השינה שלו","q":""},"net":"move","nn":"זמין עד העלייה למעבורת בערב, וחוזר לקשר כשהיא מגיעה בבוקר.","k":"travel","fl":""},{"d":"2026-12-10","p":"chaiten","t":"צ'איטן — טיפוס להר הגעש","x":"יורד מהמעבורת ב־8:00 ועולה בשביל לתצפית על הר הגעש צ'איטן ועל כל המפרץ.","legs":[{"m":"ferry","f":"מעבורת","to":"צ'איטן","dep":"","arr":"08:00","note":"","ok":false},{"m":"taxi","f":"צ'איטן","to":"שביל הר הגעש","dep":"10:00","arr":"10:30","note":"","ok":false}],"sl":{"n":"Airbnb בצ'איטן","s":"booked","note":"","q":"Chaitén, Chile"},"net":"low","nn":"","k":"travel","fl":""},{"d":"2026-12-11","p":"futa","t":"צ'איטן ← פוטאלאופו","x":"אוטובוס לפוטאלאופו, עיירה על נהר טורקיז שנחשב מנהרות הרפטינג הטובים בעולם.","legs":[{"m":"bus","f":"צ'איטן","to":"פוטאלאופו","dep":"12:00","arr":"15:30","note":"Bus Chaitén (או 16:30)","ok":false}],"sl":{"n":"פוטאלאופו","s":"open","note":"","q":"Futaleufú, Chile"},"net":"low","nn":"","k":"travel","fl":""},{"d":"2026-12-12","p":"futa","t":"פוטאלאופו","x":"אם יחליט — רפטינג מודרך בנהר Futaleufú. אחרת מסלולי הליכה בסביבה.","legs":[],"sl":{"n":"פוטאלאופו","s":"open","note":"","q":"Futaleufú, Chile"},"net":"low","nn":"","k":"city","fl":""},{"d":"2026-12-13","p":"puyu","t":"פוטאלאופו ← צ'איטן ← פויואפי","x":"יום נסיעה בנוף: אוטובוס לצ'איטן ומשם דרומה לפויואפי, כפר קטן ושקט על פיורד.","legs":[{"m":"bus","f":"פוטאלאופו","to":"צ'איטן","dep":"06:00","arr":"09:30","note":"Bus Chaitén","ok":false},{"m":"bus","f":"צ'איטן","to":"פויואפי","dep":"11:00","arr":"14:00","note":"Buses Becker","ok":false}],"sl":{"n":"פויואפי","s":"open","note":"","q":"Puyuhuapi, Chile"},"net":"move","nn":"","k":"travel","fl":"","via":["chaiten"]},{"d":"2026-12-14","p":"puyu","t":"פויואפי","x":"מעיינות חמים וקיאק על הפיורד.","legs":[],"sl":{"n":"פויואפי","s":"open","note":"","q":"Puyuhuapi, Chile"},"net":"low","nn":"","k":"city","fl":""},{"d":"2026-12-15","p":"puyu","t":"פארק קאולט","x":"טיול יום לפארק קאולט: הקרחון התלוי ולגונת Témpanos. אין קליטה בפארק.","legs":[{"m":"van","f":"פויואפי","to":"פארק קאולט","dep":"08:30","arr":"15:00","note":"Transfer Ruta 7","ok":false}],"sl":{"n":"פויואפי","s":"open","note":"","q":"Puyuhuapi, Chile"},"net":"low","nn":"אין קליטה בפארק במהלך היום.","k":"city","fl":""},{"d":"2026-12-16","p":"coy","t":"פויואפי ← קויאיקה","x":"אוטובוס מוקדם לקויאיקה, העיר הגדולה של האזור. מתארגן לטרק סרו קסטייו.","legs":[{"m":"bus","f":"פויואפי","to":"קויאיקה","dep":"06:00","arr":"11:00","note":"TerraAustral","ok":false}],"sl":{"n":"קויאיקה","s":"open","note":"","q":"Coyhaique, Chile"},"net":"ok","nn":"","k":"travel","fl":""},{"d":"2026-12-17","p":"cc1","t":"טרק סרו קסטייו — יום 1","x":"אוטובוס לווייה סרו קסטייו ומונית לתחילת השביל. ארבעה ימים בשמורה יפהפייה, עם לגונה טורקיזית מתחת להר בצורת טירה.","legs":[{"m":"bus","f":"קויאיקה","to":"וייה סרו קסטייו","dep":"08:00","arr":"09:30","note":"","ok":false},{"m":"taxi","f":"וייה סרו קסטייו","to":"לאס הורקטס","dep":"09:45","arr":"10:15","note":"","ok":false},{"m":"walk","f":"לאס הורקטס","to":"קמפינג Turbio","dep":"10:30","arr":"15:00","note":"","ok":false}],"sl":{"n":"קמפינג בשמורה","s":"tent","note":"","q":"Campamento Río Turbio, Cerro Castillo"},"net":"none","nn":"בשמורה אין קליטה, וזה רגיל. יחזור לקשר ב־20.12.","k":"trek","fl":"","via":["vcc","horq"]},{"d":"2026-12-18","p":"cc2","t":"טרק סרו קסטייו — יום 2","x":"יום של נופי הרים ועמקים.","legs":[{"m":"walk","f":"Río Turbio","to":"El Bosque","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"קמפינג בשמורה","s":"tent","note":"","q":"Laguna Cerro Castillo"},"net":"none","nn":"בלי קליטה בטרק.","k":"trek","fl":""},{"d":"2026-12-19","p":"cc3","t":"טרק סרו קסטייו — יום 3","x":"היום של הלגונה מתחת לסרו קסטייו — הנקודה הכי יפה בטרק.","legs":[{"m":"walk","f":"El Bosque","to":"Neozelandés","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"קמפינג בשמורה","s":"tent","note":"","q":"Campamento Neozelandés, Cerro Castillo"},"net":"none","nn":"בלי קליטה בטרק. חוזר לקשר מחר.","k":"trek","fl":""},{"d":"2026-12-20","p":"vcc","t":"סוף הטרק — וייה סרו קסטייו","x":"יורד לכפר, לחדר נוח ומקלחת חמה.","legs":[{"m":"walk","f":"Neozelandés","to":"וייה סרו קסטייו","dep":"","arr":"14:00","note":"","ok":false}],"sl":{"n":"Airbnb בווייה סרו קסטייו","s":"booked","note":"","q":"Villa Cerro Castillo, Chile"},"net":"low","nn":"חוזר לקשר כשמגיע לכפר.","k":"trek","fl":""},{"d":"2026-12-21","p":"rtranq","t":"וייה סרו קסטייו ← ריו טרנקילו","x":"אוטובוס לפוארטו ריו טרנקילו שעל אגם חנרל קררה. אחר הצהריים — שייט קצר למערות השיש המפורסמות.","legs":[{"m":"bus","f":"וייה סרו קסטייו","to":"ריו טרנקילו","dep":"09:30","arr":"12:30","note":"Don Carlos / Interlagos","ok":false}],"sl":{"n":"ריו טרנקילו","s":"open","note":"","q":"Puerto Río Tranquilo, Chile"},"net":"low","nn":"","k":"travel","fl":""},{"d":"2026-12-22","p":"rtranq","t":"קרחון Exploradores","x":"אם יזמין — סיור מודרך על קרחון Exploradores.","legs":[],"sl":{"n":"ריו טרנקילו","s":"open","note":"","q":"Puerto Río Tranquilo, Chile"},"net":"low","nn":"אין קליטה על הקרחון.","k":"city","fl":""},{"d":"2026-12-23","p":"cochr","t":"ריו טרנקילו ← קוקראנה","x":"נסיעה לעיירה קוקראנה.","legs":[{"m":"bus","f":"ריו טרנקילו","to":"קוקראנה","dep":"12:30","arr":"15:30","note":"Don Carlos","ok":false}],"sl":{"n":"קוקראנה","s":"open","note":"","q":"Cochrane, Chile"},"net":"low","nn":"","k":"travel","fl":""},{"d":"2026-12-24","p":"cochr","t":"קוקראנה — ערב חג המולד","x":"שמורת Tamango (סיכוי טוב לראות הואמולים) וקניות אוכל לימים הבאים — בחג הכל סגור.","legs":[],"sl":{"n":"קוקראנה","s":"open","note":"","q":"Cochrane, Chile"},"net":"low","nn":"","k":"city","fl":""},{"d":"2026-12-25","p":"tortel","t":"קוקראנה ← קאלטה טורטל","x":"אוטובוס לקאלטה טורטל, כפר של מדרכות עץ מעל הפיורד, בלי כבישים בכלל.","legs":[{"m":"bus","f":"קוקראנה","to":"קאלטה טורטל","dep":"14:00","arr":"17:00","note":"Los Glaciares","ok":false}],"sl":{"n":"Airbnb בקאלטה טורטל","s":"booked","note":"","q":"Caleta Tortel, Chile"},"net":"low","nn":"","k":"travel","fl":""},{"d":"2026-12-26","p":"ohig","t":"טורטל ← וייה אוהיגינס","x":"אוטובוס לכפר האחרון של הקרטרה אוסטרל, עם מעבורת קצרה ויפה בדרך.","legs":[{"m":"bus","f":"קאלטה טורטל","to":"וייה אוהיגינס","dep":"13:30","arr":"18:00","note":"Buses Silva, כולל מעבורת Yungay","ok":false}],"sl":{"n":"וייה אוהיגינס","s":"open","note":"","q":"Villa O'Higgins, Chile"},"net":"low","nn":"כפר קטן — קליטה חלשה.","k":"travel","fl":""},{"d":"2026-12-27","p":"ohig","t":"וייה אוהיגינס","x":"יום מנוחה והתארגנות לפני המעבר לארגנטינה.","legs":[],"sl":{"n":"וייה אוהיגינס","s":"open","note":"","q":"Villa O'Higgins, Chile"},"net":"low","nn":"","k":"city","fl":""},{"d":"2026-12-28","p":"pnorte","t":"המעבר לארגנטינה — יום 1","x":"אחד הימים היפים בטיול: שייט על אגם אוהיגינס, ואחריו הליכה בשביל נוף עד הגבול הארגנטינאי. לילה בקמפינג על שפת לאגו דל דסיירטו, ליד עמדת הגבול.","legs":[{"m":"boat","f":"וייה אוהיגינס","to":"קנדלריו מנסייה","dep":"08:30","arr":"11:30","note":"Ruedas de la Patagonia","ok":false},{"m":"walk","f":"קנדלריו מנסייה","to":"פונטה נורטה","dep":"13:00","arr":"19:00","note":"","ok":false}],"sl":{"n":"קמפינג ליד עמדת הגבול, לאגו דל דסיירטו","s":"tent","note":"","q":"Punta Norte, Lago del Desierto"},"net":"none","nn":"באזור הגבול אין קליטה. יחזור לקשר מחר בצהריים, באל צ'לטן.","k":"travel","fl":"אם מזג האוויר לא מתאים לשייט, הוא פשוט יוצא כמה ימים אחר כך. יש לזה מרווח בתכנון."},{"d":"2026-12-29","p":"chalten","t":"המעבר לארגנטינה — יום 2: אל צ'לטן","x":"סירה על לאגו דל דסיירטו ומיניוואן לאל צ'לטן, בירת הטיולים של ארגנטינה, מול הפיץ רוי.","legs":[{"m":"boat","f":"פונטה נורטה","to":"פונטה סור","dep":"11:00","arr":"11:45","note":"","ok":false},{"m":"van","f":"פונטה סור","to":"אל צ'לטן","dep":"12:00","arr":"13:30","note":"","ok":false}],"sl":{"n":"Hostel Pioneros del Valle","s":"booked","note":"דורם","q":"Hostel Pioneros del Valle, El Chaltén"},"net":"ok","nn":"חוזר לקשר בצהריים.","k":"travel","fl":""},{"d":"2026-12-30","p":"chalten","t":"אל צ'לטן","x":"טיול יום ל־Laguna de los Tres מול הפיץ רוי, או ל־Laguna Torre.","legs":[],"sl":{"n":"Hostel Pioneros del Valle","s":"booked","note":"","q":"Hostel Pioneros del Valle, El Chaltén"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2026-12-31","p":"chalten","t":"אל צ'לטן — ערב השנה החדשה","x":"טיול יום וקניות אוכל לטרק הואמול. ערב השנה החדשה בכפר.","legs":[],"sl":{"n":"Hostel Pioneros del Valle","s":"booked","note":"","q":"Hostel Pioneros del Valle, El Chaltén"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-01-01","p":"hu1","t":"מעגל הואמול — יום 1","x":"ארבעה ימים במסלול מעגלי עם תצפית על שדה הקרח הפטגוני.","legs":[{"m":"walk","f":"אל צ'לטן","to":"לגונה טורו","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"קמפינג בטבע","s":"tent","note":"","q":"Laguna Toro, El Chaltén"},"net":"none","nn":"בטרק אין קליטה, וזה רגיל. יחזור לקשר ב־4.1.","k":"trek","fl":""},{"d":"2027-01-02","p":"hu2","t":"מעגל הואמול — יום 2","x":"יום התצפית על שדה הקרח.","legs":[{"m":"walk","f":"לגונה טורו","to":"Paso del Viento","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"קמפינג בטבע","s":"tent","note":"","q":"Refugio Paso del Viento"},"net":"none","nn":"אין קליטה בטרק.","k":"trek","fl":""},{"d":"2027-01-03","p":"hu3","t":"מעגל הואמול — יום 3","x":"ממשיך סביב, מעל אגם ויידמה.","legs":[{"m":"walk","f":"Paso del Viento","to":"Bahía de los Témpanos","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"קמפינג בטבע","s":"tent","note":"","q":"Bahía de los Témpanos, Lago Viedma"},"net":"none","nn":"אין קליטה בטרק. חוזר לקשר מחר.","k":"trek","fl":""},{"d":"2027-01-04","p":"chalten","t":"סוף הואמול — חזרה לאל צ'לטן","x":"יוצא מהטרק וחוזר לאל צ'לטן, לדירה.","legs":[{"m":"walk","f":"Bahía de los Témpanos","to":"אל צ'לטן","dep":"","arr":"15:00","note":"","ok":false}],"sl":{"n":"Casa Videma (דירה)","s":"booked","note":"","q":"Casa Videma, El Chaltén"},"net":"ok","nn":"חוזר לקשר אחר הצהריים.","k":"trek","fl":""},{"d":"2027-01-05","p":"chalten","t":"אל צ'לטן","x":"יום מנוחה או Loma del Pliegue Tumbado.","legs":[],"sl":{"n":"Casa Videma (דירה)","s":"booked","note":"","q":"Casa Videma, El Chaltén"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-01-06","p":"calaf","t":"אל צ'לטן ← אל קלפטה","x":"אוטובוס לאל קלפטה.","legs":[{"m":"bus","f":"אל צ'לטן","to":"אל קלפטה","dep":"","arr":"","note":"3 שעות","ok":false}],"sl":{"n":"אל קלפטה","s":"open","note":"","q":"El Calafate, Argentina"},"net":"ok","nn":"","k":"travel","fl":""},{"d":"2027-01-07","p":"calaf","t":"קרחון פריטו מורנו","x":"יום בקרחון פריטו מורנו — המרפסות מול חזית הקרח.","legs":[],"sl":{"n":"אל קלפטה","s":"open","note":"","q":"El Calafate, Argentina"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-01-08","p":"natales","t":"אל קלפטה ← פוארטו נטאלס (חזרה לצ'ילה)","x":"אוטובוס בוקר דרך מעבר הגבול Cerro Castillo לפוארטו נטאלס.","legs":[{"m":"bus","f":"אל קלפטה","to":"פוארטו נטאלס","dep":"08:00","arr":"14:00","note":"כולל גבול","ok":false}],"sl":{"n":"פוארטו נטאלס","s":"open","note":"","q":"Puerto Natales, Chile"},"net":"move","nn":"","k":"travel","fl":""},{"d":"2027-01-09","p":"natales","t":"פוארטו נטאלס — לפני ה־W","x":"יום התארגנות: אוכל וגז לטרק, ומנוחה.","legs":[],"sl":{"n":"פוארטו נטאלס","s":"open","note":"","q":"Puerto Natales, Chile"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-01-10","p":"pgrande","t":"ה־W בטורס דל פאינה — יום 1","x":"אוטובוס לפארק, קטמרן על אגם פהואה, ואחר הצהריים הליכה לקרחון גריי.","legs":[{"m":"bus","f":"פוארטו נטאלס","to":"Pudeto","dep":"07:00","arr":"10:00","note":"","ok":false},{"m":"ferry","f":"Pudeto","to":"פאינה גרנדה","dep":"10:30","arr":"11:00","note":"קטמרן","ok":false},{"m":"walk","f":"פאינה גרנדה","to":"תצפית גריי וחזרה","dep":"13:00","arr":"19:00","note":"","ok":false}],"sl":{"n":"קמפינג פאינה גרנדה","s":"tent","note":"","q":"Refugio Paine Grande"},"net":"low","nn":"כמעט אין קליטה בפארק — אולי Wi‑Fi בתשלום בקמפינג.","k":"trek","fl":"","via":["pgrande","mgrey"]},{"d":"2027-01-11","p":"frances","t":"ה־W — יום 2: עמק פרנסס","x":"הליכה לקמפינג פרנסס, ועלייה בעמק פרנסס עד תצפית בריטניקו.","legs":[{"m":"walk","f":"פאינה גרנדה","to":"קמפינג פרנסס","dep":"","arr":"","note":"","ok":false},{"m":"walk","f":"קמפינג פרנסס","to":"תצפית בריטניקו וחזרה","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"Camping Francés","s":"tent","note":"","q":"Camping Francés, Torres del Paine"},"net":"none","nn":"אין קליטה.","k":"trek","fl":"","via":["frances","britanico"]},{"d":"2027-01-12","p":"central","t":"ה־W — יום 3","x":"יום רגוע לאורך אגם נורדנסקיולד דרך Los Cuernos, עד סנטרל.","legs":[{"m":"walk","f":"קמפינג פרנסס","to":"סנטרל","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"קמפינג סנטרל","s":"tent","note":"","q":"Camping Central, Torres del Paine"},"net":"low","nn":"כמעט אין קליטה. אולי Wi‑Fi בתשלום.","k":"trek","fl":""},{"d":"2027-01-13","p":"parenas","t":"ה־W — יום 4: מגדלי פאינה בזריחה, ונסיעה לפונטה ארנס","x":"בבוקר עולה לראות את מגדלי פאינה בזריחה — התמונה המפורסמת של פטגוניה. אחר הצהריים אוטובוס לנטאלס, ומשם לפונטה ארנס.","legs":[{"m":"walk","f":"סנטרל","to":"מיראדור לאס טורס וחזרה","dep":"","arr":"","note":"","ok":false},{"m":"van","f":"Welcome Center","to":"לגונה אמרגה","dep":"14:00","arr":"14:45","note":"","ok":false},{"m":"bus","f":"לגונה אמרגה","to":"פוארטו נטאלס","dep":"15:00","arr":"17:05","note":"","ok":false},{"m":"bus","f":"פוארטו נטאלס","to":"פונטה ארנס","dep":"19:00","arr":"22:00","note":"","ok":false}],"sl":{"n":"פונטה ארנס","s":"open","note":"","q":"Punta Arenas, Chile"},"net":"move","nn":"חוזר לקשר אחר הצהריים.","k":"travel","fl":"","via":["mtorres","central","natales"]},{"d":"2027-01-14","p":"pwill","t":"טיסה לפוארטו וויליאמס — סוף העולם","x":"טיסה קצרה לפוארטו וויליאמס — העיירה הדרומית בעולם. יום רגוע של התארגנות.","legs":[{"m":"taxi","f":"פונטה ארנס","to":"שדה התעופה","dep":"06:00","arr":"06:20","note":"","ok":false},{"m":"flight","f":"פונטה ארנס","to":"פוארטו וויליאמס","dep":"08:00","arr":"09:15","note":"DAP","ok":false}],"sl":{"n":"פוארטו וויליאמס","s":"open","note":"","q":"Puerto Williams, Chile"},"net":"low","nn":"","k":"travel","fl":""},{"d":"2027-01-15","p":"nv1","t":"דיינטס דה נבארינו — יום 1","x":"ארבעה ימים במסלול הדרומי בעולם, בין אגמים והרים מול תעלת ביגל. המסלול שמור בטלפון שלו.","legs":[{"m":"walk","f":"פוארטו וויליאמס","to":"Laguna del Salto","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"קמפינג בטבע","s":"tent","note":"","q":"Laguna del Salto, Isla Navarino"},"net":"none","nn":"בטרק אין קליטה, וזה רגיל. יחזור לקשר ב־18.1.","k":"trek","fl":"אם ירצה יום מנוחה נוסף, יתחיל ב־16.1 בגרסה קצרה יותר."},{"d":"2027-01-16","p":"nv2","t":"דיינטס דה נבארינו — יום 2","x":"יום בין אגמים הרריים.","legs":[{"m":"walk","f":"Laguna del Salto","to":"Laguna Escondida","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"קמפינג בטבע","s":"tent","note":"","q":"Laguna Escondida, Isla Navarino"},"net":"none","nn":"אין קליטה.","k":"trek","fl":""},{"d":"2027-01-17","p":"nv3","t":"דיינטס דה נבארינו — יום 3","x":"ממשיך ללגונה מרטייו.","legs":[{"m":"walk","f":"Laguna Escondida","to":"Laguna Martillo","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"קמפינג בטבע","s":"tent","note":"","q":"Laguna Martillo, Isla Navarino"},"net":"none","nn":"אין קליטה. חוזר לקשר מחר.","k":"trek","fl":""},{"d":"2027-01-18","p":"pwill","t":"סוף נבארינו — חזרה לפוארטו וויליאמס","x":"מסיים את הטרק וחוזר לעיירה, למקלחת וארוחה חמה.","legs":[{"m":"walk","f":"Laguna Martillo","to":"פסקת MacLean","dep":"","arr":"","note":"","ok":false},{"m":"taxi","f":"MacLean","to":"פוארטו וויליאמס","dep":"","arr":"","note":"הסעה","ok":false}],"sl":{"n":"פוארטו וויליאמס","s":"open","note":"","q":"Puerto Williams, Chile"},"net":"low","nn":"חוזר לקשר אחר הצהריים.","k":"trek","fl":""},{"d":"2027-01-19","p":"ush","t":"פוארטו וויליאמס ← אושואיה","x":"אוטובוס וסירה דרך תעלת ביגל לאושואיה, חזרה לארגנטינה.","legs":[{"m":"bus","f":"פוארטו וויליאמס","to":"פוארטו נבארינו","dep":"08:30","arr":"09:45","note":"","ok":false},{"m":"boat","f":"פוארטו נבארינו","to":"אושואיה","dep":"10:30","arr":"11:15","note":"","ok":false}],"sl":{"n":"אושואיה","s":"booked","note":"","q":"Ushuaia, Argentina"},"net":"ok","nn":"","k":"travel","fl":"אם הים סוער, הסירה יוצאת למחרת. הלינה באושואיה גמישה."},{"d":"2027-01-20","p":"ush","t":"אושואיה","x":"פארק טיירה דל פואגו — מסלול החוף.","legs":[],"sl":{"n":"אושואיה","s":"booked","note":"","q":"Ushuaia, Argentina"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-01-21","p":"ush","t":"אושואיה","x":"Laguna Esmeralda או קרחון Vinciguerra.","legs":[],"sl":{"n":"אושואיה","s":"booked","note":"","q":"Ushuaia, Argentina"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-01-22","p":"ush","t":"אושואיה","x":"שייט בתעלת ביגל למגדלור. ערב אחרון בקצה העולם.","legs":[],"sl":{"n":"אושואיה","s":"booked","note":"","q":"Ushuaia, Argentina"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-01-23","p":"madryn","t":"אושואיה ← טרלאו ← פוארטו מדרין","x":"טיסה ישירה צפונה לחוף האטלנטי, ושאטל לפוארטו מדרין.","legs":[{"m":"taxi","f":"אושואיה","to":"שדה התעופה","dep":"07:30","arr":"07:40","note":"","ok":false},{"m":"flight","f":"אושואיה","to":"טרלאו","dep":"09:20","arr":"10:25","note":"Aerolíneas","ok":false},{"m":"van","f":"טרלאו","to":"פוארטו מדרין","dep":"10:45","arr":"11:45","note":"שאטל","ok":false}],"sl":{"n":"פוארטו מדרין","s":"open","note":"","q":"Puerto Madryn, Argentina"},"net":"ok","nn":"","k":"travel","fl":""},{"d":"2027-01-24","p":"madryn","t":"חצי האי ואלדס","x":"סיור בחצי האי ואלדס: אריות ים, פילי ים ופינגווינים.","legs":[],"sl":{"n":"פוארטו מדרין","s":"open","note":"","q":"Puerto Madryn, Argentina"},"net":"ok","nn":"אין קליטה ברוב חצי האי.","k":"city","fl":""},{"d":"2027-01-25","p":"madryn","t":"פונטה טומבו","x":"מושבת הפינגווינים של פונטה טומבו, או שנורקל עם אריות ים.","legs":[],"sl":{"n":"פוארטו מדרין","s":"open","note":"","q":"Puerto Madryn, Argentina"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-01-26","p":"bue","t":"פוארטו מדרין ← בואנוס איירס","x":"טיסה מטרלאו לבואנוס איירס, לילה אחד ברקולטה.","legs":[{"m":"van","f":"פוארטו מדרין","to":"שדה טרלאו","dep":"13:00","arr":"14:00","note":"","ok":false},{"m":"flight","f":"טרלאו","to":"בואנוס איירס (AEP)","dep":"16:20","arr":"18:20","note":"","ok":false},{"m":"taxi","f":"AEP","to":"רקולטה","dep":"19:00","arr":"19:30","note":"","ok":false}],"sl":{"n":"Up Laprida, רקולטה","s":"booked","note":"Laprida 1429","q":"Up Laprida, Buenos Aires"},"net":"move","nn":"","k":"travel","fl":""},{"d":"2027-01-27","p":"mza","t":"בואנוס איירס ← מנדוסה","x":"טיסה מוקדמת למנדוסה, עיר היין שלמרגלות האנדים.","legs":[{"m":"taxi","f":"רקולטה","to":"AEP","dep":"04:30","arr":"04:50","note":"","ok":false},{"m":"flight","f":"בואנוס איירס","to":"מנדוסה","dep":"06:00","arr":"08:00","note":"","ok":false}],"sl":{"n":"מנדוסה","s":"open","note":"","q":"Mendoza, Argentina"},"net":"ok","nn":"","k":"travel","fl":""},{"d":"2027-01-28","p":"mza","t":"מנדוסה","x":"יקבים במאיפו על אופניים.","legs":[],"sl":{"n":"מנדוסה","s":"open","note":"","q":"Mendoza, Argentina"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-01-29","p":"mza","t":"מנדוסה — אקונקגואה","x":"טיול יום ל־Confluencia, בבסיס ההר הגבוה ביבשת.","legs":[],"sl":{"n":"מנדוסה","s":"open","note":"","q":"Mendoza, Argentina"},"net":"ok","nn":"קליטה חלשה בפארק.","k":"city","fl":""},{"d":"2027-01-30","p":"busmc","t":"אוטובוס לילה לקורדובה","x":"יום אחרון במנדוסה, ובערב אוטובוס לילה עם מושב שנפתח למיטה.","legs":[{"m":"bus","f":"מנדוסה","to":"קורדובה","dep":"21:30","arr":"07:30","note":"מושב שנפתח למיטה","ok":false}],"sl":{"n":"באוטובוס","s":"transit","note":"","q":""},"net":"move","nn":"קליטה לסירוגין בדרך.","k":"travel","fl":""},{"d":"2027-01-31","p":"cba","t":"קורדובה","x":"מגיע בבוקר. עיר סטודנטים, מנוחה.","legs":[{"m":"bus","f":"מנדוסה","to":"קורדובה","dep":"","arr":"07:30","note":"","ok":false}],"sl":{"n":"קורדובה","s":"open","note":"","q":"Córdoba, Argentina"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-02-01","p":"cba","t":"קורדובה","x":"יום בקורדובה לפני שני לילות באוטובוס.","legs":[],"sl":{"n":"קורדובה","s":"open","note":"","q":"Córdoba, Argentina"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-02-02","p":"buscm","t":"אוטובוס לילה למרסדס","x":"אוטובוס לילה לכיוון שמורת איברה.","legs":[{"m":"bus","f":"קורדובה","to":"מרסדס (קוריינטס)","dep":"20:20","arr":"15:00","note":"","ok":false}],"sl":{"n":"באוטובוס","s":"transit","note":"","q":""},"net":"move","nn":"קליטה לסירוגין בדרך.","k":"travel","fl":""},{"d":"2027-02-03","p":"ibera","t":"מרסדס ← אסטרוס דל איברה","x":"מגיע אחר הצהריים, והלודג' אוסף אותו לכפר קולוניה פלגריני, בלב שמורת טבע של אגמים וחיות בר.","legs":[{"m":"bus","f":"קורדובה","to":"מרסדס","dep":"","arr":"15:00","note":"","ok":false},{"m":"van","f":"מרסדס","to":"קולוניה פלגריני","dep":"15:30","arr":"18:00","note":"העברה פרטית דרך הלודג'","ok":false}],"sl":{"n":"לודג' באיברה","s":"open","note":"","q":"Colonia Carlos Pellegrini, Corrientes"},"net":"low","nn":"קליטה חלשה בכפר.","k":"travel","fl":""},{"d":"2027-02-04","p":"ibera","t":"איברה","x":"שייט בין קפיברות, ציפורים וחיות בר.","legs":[],"sl":{"n":"לודג' באיברה","s":"open","note":"","q":"Colonia Carlos Pellegrini, Corrientes"},"net":"low","nn":"","k":"city","fl":""},{"d":"2027-02-05","p":"ibera","t":"איברה","x":"רכיבה על סוסים בערבה המוצפת.","legs":[],"sl":{"n":"לודג' באיברה","s":"open","note":"","q":"Colonia Carlos Pellegrini, Corrientes"},"net":"low","nn":"","k":"city","fl":""},{"d":"2027-02-06","p":"buscs","t":"איברה ← קוריינטס ← לילה לסלטה","x":"יום נסיעה צפונה: הסעה, אוטובוס לקוריינטס, ובערב אוטובוס לילה לסלטה.","legs":[{"m":"van","f":"פלגריני","to":"מרסדס","dep":"08:00","arr":"10:30","note":"","ok":false},{"m":"bus","f":"מרסדס","to":"קוריינטס","dep":"11:30","arr":"14:30","note":"","ok":false},{"m":"bus","f":"קוריינטס / רזיסטנסיה","to":"סלטה","dep":"19:00","arr":"07:00","note":"לילה, cama","ok":false}],"sl":{"n":"באוטובוס","s":"transit","note":"","q":""},"net":"move","nn":"","k":"travel","fl":""},{"d":"2027-02-07","p":"salta","t":"סלטה","x":"מגיע בבוקר. מוזיאון MAAM.","legs":[],"sl":{"n":"סלטה","s":"open","note":"","q":"Salta, Argentina"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-02-08","p":"cafa","t":"סלטה ← קפיאטה (קרנבל)","x":"אוטובוס דרך Quebrada de las Conchas לעיירת היין קפיאטה, בזמן הקרנבל.","legs":[{"m":"bus","f":"סלטה","to":"קפיאטה","dep":"","arr":"","note":"4 שעות","ok":false}],"sl":{"n":"קפיאטה","s":"open","note":"","q":"Cafayate, Argentina"},"net":"ok","nn":"","k":"travel","fl":""},{"d":"2027-02-09","p":"cafa","t":"קפיאטה — קרנבל","x":"יין טורונטס וקרנבל.","legs":[],"sl":{"n":"קפיאטה","s":"open","note":"","q":"Cafayate, Argentina"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-02-10","p":"salta","t":"קפיאטה ← סלטה","x":"חזרה לסלטה.","legs":[{"m":"bus","f":"קפיאטה","to":"סלטה","dep":"","arr":"","note":"4 שעות","ok":false}],"sl":{"n":"סלטה","s":"open","note":"","q":"Salta, Argentina"},"net":"ok","nn":"","k":"travel","fl":""},{"d":"2027-02-11","p":"iruya","t":"סלטה ← הומאואקה ← אירויה","x":"אוטובוס צפונה להומאואקה, ומשם לאירויה — כפר ציורי על צלע הר, בתוך קניון צבעוני.","legs":[{"m":"bus","f":"סלטה","to":"הומאואקה","dep":"05:30","arr":"10:00","note":"Balut","ok":false},{"m":"bus","f":"הומאואקה","to":"אירויה","dep":"13:00","arr":"16:00","note":"","ok":false}],"sl":{"n":"אירויה","s":"open","note":"","q":"Iruya, Argentina"},"net":"low","nn":"כפר קטן — קליטה חלשה.","k":"travel","fl":""},{"d":"2027-02-12","p":"iruya","t":"אירויה","x":"הליכה לכפר סן איסידרו.","legs":[],"sl":{"n":"אירויה","s":"open","note":"","q":"Iruya, Argentina"},"net":"low","nn":"","k":"city","fl":""},{"d":"2027-02-13","p":"quiaca","t":"אירויה ← לה קיאקה","x":"חזרה להומאואקה ועוד אוטובוס לעיירת הגבול עם בוליביה.","legs":[{"m":"bus","f":"אירויה","to":"הומאואקה","dep":"","arr":"","note":"","ok":false},{"m":"bus","f":"הומאואקה","to":"לה קיאקה","dep":"","arr":"","note":"2.5–3 שעות","ok":false}],"sl":{"n":"לה קיאקה","s":"open","note":"","q":"La Quiaca, Argentina"},"net":"move","nn":"","k":"travel","fl":""},{"d":"2027-02-14","p":"tupiza","t":"חוצה לבוליביה","x":"עובר את הגשר לבוליביה בבוקר, ואוטובוס לטופיסה. בבוליביה השעון זז שעה אחורה.","legs":[{"m":"walk","f":"לה קיאקה","to":"וייאסון (בוליביה)","dep":"08:00","arr":"09:30","note":"מעבר גבול","ok":false},{"m":"bus","f":"וייאסון","to":"טופיסה","dep":"10:00","arr":"13:00","note":"","ok":false}],"sl":{"n":"טופיסה","s":"open","note":"","q":"Tupiza, Bolivia"},"net":"move","nn":"","k":"travel","fl":""},{"d":"2027-02-15","p":"tupiza","t":"טופיסה","x":"קניונים אדומים ורכיבה על סוסים. מזמין את סיור הג'יפים.","legs":[],"sl":{"n":"טופיסה","s":"open","note":"","q":"Tupiza, Bolivia"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-02-16","p":"j1","t":"סיור הג'יפים לאויוני — יום 1","x":"4 ימים בג'יפ ברמה הגבוהה: לגונות צבעוניות, פלמינגו וגייזרים.","legs":[{"m":"jeep","f":"טופיסה","to":"דרום ליפס","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"לינה בכפר","s":"included","note":"","q":"Sud Lípez, Bolivia"},"net":"none","nn":"בסיור אין קליטה, וזה רגיל. יחזור לקשר ב־19.2.","k":"trek","fl":""},{"d":"2027-02-17","p":"j2","t":"סיור הג'יפים — יום 2","x":"לגונה קולורדה עם הפלמינגו, וגייזרים של Sol de Mañana.","legs":[{"m":"jeep","f":"דרום ליפס","to":"לגונה קולורדה","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"לינה ברמה","s":"included","note":"","q":"Laguna Colorada, Bolivia"},"net":"none","nn":"אין קליטה.","k":"trek","fl":""},{"d":"2027-02-18","p":"j3","t":"סיור הג'יפים — יום 3","x":"מדבר סלבדור דאלי, ובערב לשולי מישור המלח.","legs":[{"m":"jeep","f":"לגונה קולורדה","to":"שולי סלאר אויוני","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"מלון מלח","s":"included","note":"","q":"Salar de Uyuni"},"net":"none","nn":"אין קליטה. חוזר לקשר מחר.","k":"trek","fl":""},{"d":"2027-02-19","p":"potosi","t":"זריחה על מישור המלח ← פוטוסי","x":"זריחה על סלאר אויוני בעונת \"המראה\", ואחר הצהריים אוטובוס לעיר הקולוניאלית פוטוסי.","legs":[{"m":"jeep","f":"סלאר אויוני","to":"אויוני","dep":"","arr":"13:00","note":"","ok":false},{"m":"bus","f":"אויוני","to":"פוטוסי","dep":"15:00","arr":"19:00","note":"","ok":false}],"sl":{"n":"פוטוסי","s":"open","note":"","q":"Potosí, Bolivia"},"net":"move","nn":"חוזר לקשר אחר הצהריים באויוני.","k":"travel","fl":""},{"d":"2027-02-20","p":"potosi","t":"פוטוסי","x":"Casa de la Moneda והעיר העתיקה.","legs":[],"sl":{"n":"פוטוסי","s":"open","note":"","q":"Potosí, Bolivia"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-02-21","p":"sucre","t":"פוטוסי ← סוקרה","x":"נסיעה קצרה לעיר הלבנה סוקרה — שבוע של לימודי ספרדית.","legs":[{"m":"taxi","f":"פוטוסי","to":"סוקרה","dep":"","arr":"","note":"מונית משותפת, 2.5 שעות","ok":false}],"sl":{"n":"סוקרה","s":"open","note":"","q":"Sucre, Bolivia"},"net":"ok","nn":"","k":"travel","fl":""},{"d":"2027-02-22","p":"sucre","t":"סוקרה — שבוע ספרדית","x":"שיעורי ספרדית בבוקר, ואחר הצהריים העיר, פארק הדינוזאורים או מכתש מראגואה.","legs":[],"sl":{"n":"סוקרה","s":"open","note":"","q":"Sucre, Bolivia"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-02-23","p":"sucre","t":"סוקרה — שבוע ספרדית","x":"שיעורי ספרדית בבוקר, ואחר הצהריים העיר, פארק הדינוזאורים או מכתש מראגואה.","legs":[],"sl":{"n":"סוקרה","s":"open","note":"","q":"Sucre, Bolivia"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-02-24","p":"sucre","t":"סוקרה — שבוע ספרדית","x":"שיעורי ספרדית בבוקר, ואחר הצהריים העיר, פארק הדינוזאורים או מכתש מראגואה.","legs":[],"sl":{"n":"סוקרה","s":"open","note":"","q":"Sucre, Bolivia"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-02-25","p":"sucre","t":"סוקרה — שבוע ספרדית","x":"שיעורי ספרדית בבוקר, ואחר הצהריים העיר, פארק הדינוזאורים או מכתש מראגואה.","legs":[],"sl":{"n":"סוקרה","s":"open","note":"","q":"Sucre, Bolivia"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-02-26","p":"sucre","t":"סוקרה — שבוע ספרדית","x":"שיעורי ספרדית בבוקר, ואחר הצהריים העיר, פארק הדינוזאורים או מכתש מראגואה.","legs":[],"sl":{"n":"סוקרה","s":"open","note":"","q":"Sucre, Bolivia"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-02-27","p":"bussc","t":"אוטובוס לילה לקוצ'במבה","x":"יום אחרון בסוקרה, ובערב אוטובוס לילה.","legs":[{"m":"bus","f":"סוקרה","to":"קוצ'במבה","dep":"20:00","arr":"06:30","note":"cama","ok":false}],"sl":{"n":"באוטובוס","s":"transit","note":"","q":""},"net":"move","nn":"","k":"travel","fl":""},{"d":"2027-02-28","p":"toro","t":"קוצ'במבה ← טורוטורו","x":"מגיע בבוקר לקוצ'במבה, ומיניבוס לפארק טורוטורו.","legs":[{"m":"van","f":"קוצ'במבה","to":"טורוטורו","dep":"09:00","arr":"12:00","note":"מיניבוס, יוצא כשמתמלא","ok":false}],"sl":{"n":"טורוטורו","s":"open","note":"","q":"Torotoro, Bolivia"},"net":"low","nn":"","k":"travel","fl":""},{"d":"2027-03-01","p":"toro","t":"טורוטורו","x":"עקבות דינוזאורים ומערת Umajalanta.","legs":[],"sl":{"n":"טורוטורו","s":"open","note":"","q":"Torotoro, Bolivia"},"net":"low","nn":"","k":"city","fl":""},{"d":"2027-03-02","p":"toro","t":"טורוטורו","x":"קניון El Vergel.","legs":[],"sl":{"n":"טורוטורו","s":"open","note":"","q":"Torotoro, Bolivia"},"net":"low","nn":"","k":"city","fl":""},{"d":"2027-03-03","p":"lpz","t":"טורוטורו ← קוצ'במבה ← לה פאס","x":"מיניבוס חזרה לקוצ'במבה וטיסה קצרה ללה פאס.","legs":[{"m":"van","f":"טורוטורו","to":"קוצ'במבה","dep":"06:00","arr":"09:00","note":"","ok":false},{"m":"flight","f":"קוצ'במבה","to":"לה פאס","dep":"","arr":"","note":"45 דקות","ok":false}],"sl":{"n":"לה פאס","s":"open","note":"","q":"La Paz, Bolivia"},"net":"move","nn":"","k":"travel","fl":""},{"d":"2027-03-04","p":"lpz","t":"לה פאס","x":"הרכבלים של העיר ותצפיות על ההרים.","legs":[],"sl":{"n":"לה פאס","s":"open","note":"","q":"La Paz, Bolivia"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-03-05","p":"rurre","t":"טיסה לאמזונס — רוראנבקה","x":"טיסה של 40 דקות מההרים לג'ונגל. 3 לילות בלודג' בג'ונגל או בפמפס.","legs":[{"m":"flight","f":"לה פאס","to":"רוראנבקה","dep":"08:00","arr":"08:40","note":"EcoJet","ok":false},{"m":"boat","f":"רוראנבקה","to":"הלודג'","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"לודג' בג'ונגל / פמפס","s":"included","note":"","q":"Rurrenabaque, Bolivia"},"net":"none","nn":"בג'ונגל אין קליטה, וזה רגיל. יחזור לקשר ב־8.3.","k":"trek","fl":""},{"d":"2027-03-06","p":"rurre","t":"ג'ונגל / פמפס","x":"דולפיני נהר ורודים, קופים וציפורים.","legs":[],"sl":{"n":"לודג' בג'ונגל / פמפס","s":"included","note":"","q":"Rurrenabaque, Bolivia"},"net":"none","nn":"אין קליטה.","k":"trek","fl":""},{"d":"2027-03-07","p":"rurre","t":"ג'ונגל / פמפס","x":"יום אחרון באמזונס.","legs":[],"sl":{"n":"לודג' בג'ונגל / פמפס","s":"included","note":"","q":"Rurrenabaque, Bolivia"},"net":"none","nn":"אין קליטה. חוזר לקשר מחר.","k":"trek","fl":""},{"d":"2027-03-08","p":"lpz","t":"רוראנבקה ← לה פאס","x":"טיסה חזרה ללה פאס.","legs":[{"m":"flight","f":"רוראנבקה","to":"לה פאס","dep":"","arr":"","note":"EcoJet","ok":false}],"sl":{"n":"לה פאס","s":"open","note":"","q":"La Paz, Bolivia"},"net":"ok","nn":"חוזר לקשר אחרי הנחיתה.","k":"travel","fl":"יש יום רזרבה בלה פאס, למקרה שהטיסה זזה."},{"d":"2027-03-09","p":"lpz","t":"לה פאס","x":"יום רזרבה וסידורים.","legs":[],"sl":{"n":"לה פאס","s":"open","note":"","q":"La Paz, Bolivia"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-03-10","p":"copa","t":"לה פאס ← קופקבנה","x":"אוטובוס לאגם טיטיקקה, כולל מעבר סירה במיצר טיקינה.","legs":[{"m":"bus","f":"לה פאס","to":"קופקבנה","dep":"08:00","arr":"12:00","note":"","ok":false}],"sl":{"n":"קופקבנה","s":"open","note":"","q":"Copacabana, Bolivia"},"net":"ok","nn":"","k":"travel","fl":""},{"d":"2027-03-11","p":"puno","t":"קופקבנה ← פונו (חוצה לפרו)","x":"אוטובוס תיירים דרך הגבול לפונו. בפרו השעון זז עוד שעה אחורה.","legs":[{"m":"bus","f":"קופקבנה","to":"פונו","dep":"13:30","arr":"17:30","note":"כולל גבול","ok":false}],"sl":{"n":"פונו","s":"open","note":"","q":"Puno, Peru"},"net":"move","nn":"","k":"travel","fl":""},{"d":"2027-03-12","p":"puno","t":"פונו","x":"אגם טיטיקקה — אולי לילה בבית משפחה באי אמנטני.","legs":[],"sl":{"n":"פונו","s":"open","note":"","q":"Puno, Peru"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-03-13","p":"cabana","t":"פונו ← קניון קולקה","x":"אוטובוס תיירים לצ'יבאי, ומשם לקבנקונדה בשפת הקניון.","legs":[{"m":"bus","f":"פונו","to":"צ'יבאי","dep":"06:00","arr":"12:00","note":"אוטובוס תיירים","ok":false},{"m":"bus","f":"צ'יבאי","to":"קבנקונדה","dep":"13:00","arr":"15:00","note":"","ok":false}],"sl":{"n":"קבנקונדה","s":"open","note":"","q":"Cabanaconde, Peru"},"net":"low","nn":"","k":"travel","fl":""},{"d":"2027-03-14","p":"sangalle","t":"קניון קולקה — ירידה לנווה המדבר","x":"ירידה לנווה מדבר ירוק עם בריכות, בתחתית הקניון.","legs":[{"m":"walk","f":"קבנקונדה","to":"סנגאייה","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"לינה בנווה המדבר","s":"open","note":"במקום","q":"Oasis de Sangalle, Colca"},"net":"none","nn":"כנראה בלי קליטה בתחתית הקניון.","k":"trek","fl":""},{"d":"2027-03-15","p":"cabana","t":"קניון קולקה — עלייה חזרה","x":"עלייה לקבנקונדה, וקונדורים ב־Cruz del Cóndor.","legs":[{"m":"walk","f":"סנגאייה","to":"קבנקונדה","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"קבנקונדה","s":"open","note":"","q":"Cabanaconde, Peru"},"net":"low","nn":"","k":"trek","fl":""},{"d":"2027-03-16","p":"areq","t":"קולקה ← ארקיפה","x":"אוטובוס לעיר הלבנה ארקיפה.","legs":[{"m":"bus","f":"קבנקונדה","to":"ארקיפה","dep":"06:00","arr":"12:00","note":"","ok":false}],"sl":{"n":"ארקיפה","s":"open","note":"","q":"Arequipa, Peru"},"net":"ok","nn":"","k":"travel","fl":""},{"d":"2027-03-17","p":"areq","t":"ארקיפה","x":"מנזר סנטה קטלינה ומסעדות picantería.","legs":[],"sl":{"n":"ארקיפה","s":"open","note":"","q":"Arequipa, Peru"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-03-18","p":"busac","t":"אוטובוס לילה לקוסקו","x":"יום בארקיפה, ובערב אוטובוס לילה.","legs":[{"m":"bus","f":"ארקיפה","to":"קוסקו","dep":"20:30","arr":"06:30","note":"Cruz del Sur / Oltursa","ok":false}],"sl":{"n":"באוטובוס","s":"transit","note":"","q":""},"net":"move","nn":"","k":"travel","fl":""},{"d":"2027-03-19","p":"cusco","t":"קוסקו","x":"מגיע בבוקר. יום רגוע בעיר.","legs":[],"sl":{"n":"קוסקו","s":"open","note":"","q":"Cusco, Peru"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-03-20","p":"cusco","t":"קוסקו","x":"יום בעיר לפני הטרק.","legs":[],"sl":{"n":"קוסקו","s":"open","note":"","q":"Cusco, Peru"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-03-21","p":"ch1","t":"טרק צ'וקקיראו — יום 1","x":"4 ימים לאתר אינקה בגודל של מאצ'ו פיצ'ו, שמגיעים אליו מעט מבקרים. עם צוות מקומי ופרדות שסוחבות את הציוד.","legs":[{"m":"van","f":"קוסקו","to":"קצ'ורה","dep":"05:00","arr":"09:00","note":"","ok":false},{"m":"walk","f":"Capuliyoc","to":"צ'יקיסקה","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"קמפינג","s":"tent","note":"אוהלים של הסוכנות","q":"Choquequirao"},"net":"none","nn":"בטרק אין קליטה, וזה רגיל. יחזור לקשר ב־25.3 בערב.","k":"trek","fl":""},{"d":"2027-03-22","p":"ch2","t":"טרק צ'וקקיראו — יום 2","x":"חוצה את הנהר וממשיך לכפר מרמפטה.","legs":[{"m":"walk","f":"צ'יקיסקה","to":"מרמפטה","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"קמפינג","s":"tent","note":"","q":"Marampata, Choquequirao"},"net":"none","nn":"אין קליטה.","k":"trek","fl":""},{"d":"2027-03-23","p":"ch3","t":"טרק צ'וקקיראו — יום 3","x":"יום שלם באתר צ'וקקיראו.","legs":[{"m":"walk","f":"מרמפטה","to":"צ'וקקיראו","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"קמפינג","s":"tent","note":"","q":"Choquequirao"},"net":"none","nn":"אין קליטה.","k":"trek","fl":""},{"d":"2027-03-24","p":"ch1","t":"טרק צ'וקקיראו — יום 4","x":"חוזר באותה דרך.","legs":[{"m":"walk","f":"צ'וקקיראו","to":"צ'יקיסקה","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"קמפינג","s":"tent","note":"","q":"Choquequirao"},"net":"none","nn":"אין קליטה. חוזר לקשר מחר בערב.","k":"trek","fl":""},{"d":"2027-03-25","p":"cusco","t":"סוף הטרק — חזרה לקוסקו","x":"חוזר לקוסקו.","legs":[{"m":"walk","f":"צ'יקיסקה","to":"Capuliyoc","dep":"","arr":"","note":"","ok":false},{"m":"van","f":"קצ'ורה","to":"קוסקו","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"קוסקו","s":"open","note":"","q":"Cusco, Peru"},"net":"move","nn":"חוזר לקשר בערב.","k":"trek","fl":""},{"d":"2027-03-26","p":"ollan","t":"קוסקו ← העמק הקדוש","x":"קולקטיבו לעמק הקדוש. פיסאק, מארס ומוריי.","legs":[{"m":"van","f":"קוסקו","to":"אויאנטייטמבו","dep":"","arr":"","note":"1.5–2 שעות","ok":false}],"sl":{"n":"העמק הקדוש","s":"open","note":"","q":"Ollantaytambo, Peru"},"net":"ok","nn":"","k":"travel","fl":""},{"d":"2027-03-27","p":"ollan","t":"העמק הקדוש","x":"אויאנטייטמבו וסביבתה.","legs":[],"sl":{"n":"העמק הקדוש","s":"open","note":"","q":"Ollantaytambo, Peru"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-03-28","p":"aguas","t":"בדרך למאצ'ו פיצ'ו","x":"מיניוואן להידרואלקטריקה והליכה נעימה לאורך מסילת הרכבת לאגואס קליינטס.","legs":[{"m":"van","f":"אויאנטייטמבו","to":"הידרואלקטריקה","dep":"09:00","arr":"13:00","note":"","ok":false},{"m":"walk","f":"הידרואלקטריקה","to":"אגואס קליינטס","dep":"13:30","arr":"16:30","note":"","ok":false}],"sl":{"n":"אגואס קליינטס","s":"open","note":"","q":"Aguas Calientes, Machu Picchu"},"net":"move","nn":"","k":"travel","fl":""},{"d":"2027-03-29","p":"cusco","t":"מאצ'ו פיצ'ו","x":"כניסה מוקדמת למאצ'ו פיצ'ו. אחר הצהריים הליכה חזרה ומיניוואן לקוסקו — מגיע בסביבות 22:00.","legs":[{"m":"bus","f":"אגואס קליינטס","to":"מאצ'ו פיצ'ו","dep":"06:00","arr":"06:30","note":"","ok":false},{"m":"walk","f":"אגואס קליינטס","to":"הידרואלקטריקה","dep":"12:00","arr":"14:30","note":"","ok":false},{"m":"van","f":"הידרואלקטריקה","to":"קוסקו","dep":"15:00","arr":"22:00","note":"","ok":false}],"sl":{"n":"קוסקו","s":"open","note":"","q":"Cusco, Peru"},"net":"move","nn":"קליטה חלשה באתר ובדרך.","k":"travel","fl":""},{"d":"2027-03-30","p":"lima","t":"קוסקו ← לימה","x":"טיסה ללימה. ערב במירפלורס.","legs":[{"m":"flight","f":"קוסקו","to":"לימה","dep":"","arr":"","note":"1:20","ok":false}],"sl":{"n":"לימה","s":"open","note":"","q":"Miraflores, Lima"},"net":"ok","nn":"","k":"travel","fl":""},{"d":"2027-03-31","p":"buslh","t":"לימה ← אוטובוס לילה להוארס","x":"יום בלימה, ובלילה אוטובוס לרכס הלבן.","legs":[{"m":"bus","f":"לימה","to":"הוארס","dep":"22:30","arr":"06:30","note":"Cruz del Sur / Móvil","ok":false}],"sl":{"n":"באוטובוס","s":"transit","note":"","q":""},"net":"move","nn":"","k":"travel","fl":""},{"d":"2027-04-01","p":"huaraz","t":"הוארס","x":"מגיע בבוקר לעיר שבין ההרים המושלגים. יום רגוע.","legs":[],"sl":{"n":"הוארס","s":"open","note":"","q":"Huaraz, Peru"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-04-02","p":"huaraz","t":"לגונה 69","x":"טיול יום ללגונה 69, אגם טורקיז בין קרחונים.","legs":[],"sl":{"n":"הוארס","s":"open","note":"","q":"Huaraz, Peru"},"net":"ok","nn":"אין קליטה במסלול.","k":"city","fl":""},{"d":"2027-04-03","p":"sc1","t":"טרק סנטה קרוז — יום 1","x":"ארבעה ימים מאורגנים עם מדריך וצוות ברכס הלבן.","legs":[{"m":"van","f":"הוארס","to":"תחילת השביל","dep":"","arr":"","note":"","ok":false},{"m":"walk","f":"תחילת השביל","to":"מחנה 1","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"קמפינג","s":"tent","note":"אוהלים של הסוכנות","q":"Quebrada Santa Cruz, Huaraz"},"net":"none","nn":"בטרק אין קליטה, וזה רגיל. יחזור לקשר ב־6.4.","k":"trek","fl":""},{"d":"2027-04-04","p":"sc2","t":"טרק סנטה קרוז — יום 2","x":"יום התצפית על הפסגות המושלגות.","legs":[{"m":"walk","f":"מחנה 1","to":"מחנה 2","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"קמפינג","s":"tent","note":"","q":"Taullipampa, Santa Cruz trek"},"net":"none","nn":"אין קליטה.","k":"trek","fl":""},{"d":"2027-04-05","p":"sc3","t":"טרק סנטה קרוז — יום 3","x":"יורד בעמק.","legs":[{"m":"walk","f":"מחנה 2","to":"מחנה 3","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"קמפינג","s":"tent","note":"","q":"Llamacorral, Santa Cruz trek"},"net":"none","nn":"אין קליטה. חוזר לקשר מחר.","k":"trek","fl":""},{"d":"2027-04-06","p":"huaraz","t":"סוף הטרק — חזרה להוארס","x":"יוצא מהטרק וחוזר לעיר.","legs":[{"m":"walk","f":"מחנה 3","to":"Cashapampa","dep":"","arr":"","note":"","ok":false},{"m":"van","f":"Cashapampa","to":"הוארס","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"הוארס","s":"open","note":"","q":"Huaraz, Peru"},"net":"ok","nn":"חוזר לקשר אחר הצהריים.","k":"trek","fl":""},{"d":"2027-04-07","p":"busht","t":"הוארס ← אוטובוס לילה לטרוחיו","x":"יום מנוחה, ובלילה אוטובוס לחוף.","legs":[{"m":"bus","f":"הוארס","to":"טרוחיו","dep":"21:30","arr":"06:00","note":"","ok":false}],"sl":{"n":"באוטובוס","s":"transit","note":"","q":""},"net":"move","nn":"","k":"travel","fl":""},{"d":"2027-04-08","p":"truji","t":"טרוחיו והואנצ'קו","x":"צ'אן צ'אן, עיר עתיקה ומרשימה ליד הים.","legs":[],"sl":{"n":"הואנצ'קו","s":"open","note":"","q":"Huanchaco, Peru"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-04-09","p":"truji","t":"טרוחיו והואנצ'קו","x":"Huaca de la Luna, וסירות קנה על החוף.","legs":[],"sl":{"n":"הואנצ'קו","s":"open","note":"","q":"Huanchaco, Peru"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-04-10","p":"bustc","t":"אוטובוס לילה לצ'צ'פויאס","x":"בערב אוטובוס לילה צפונה.","legs":[{"m":"bus","f":"טרוחיו","to":"צ'צ'פויאס","dep":"19:30","arr":"08:00","note":"Móvil Tours","ok":false}],"sl":{"n":"באוטובוס","s":"transit","note":"","q":""},"net":"move","nn":"","k":"travel","fl":""},{"d":"2027-04-11","p":"chacha","t":"צ'צ'פויאס","x":"מגיע בבוקר.","legs":[],"sl":{"n":"צ'צ'פויאס","s":"open","note":"","q":"Chachapoyas, Peru"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-04-12","p":"chacha","t":"קואלאפ","x":"אתר עתיק ומרשים על רכס הרים.","legs":[],"sl":{"n":"צ'צ'פויאס","s":"open","note":"","q":"Chachapoyas, Peru"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-04-13","p":"chacha","t":"מפל גוקטה","x":"מפל של 771 מ'.","legs":[],"sl":{"n":"צ'צ'פויאס","s":"open","note":"","q":"Chachapoyas, Peru"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-04-14","p":"chacha","t":"קרחיה וליימבמבה","x":"הסרקופגים של קרחיה.","legs":[],"sl":{"n":"צ'צ'פויאס","s":"open","note":"","q":"Chachapoyas, Peru"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-04-15","p":"signa","t":"צ'צ'פויאס ← סן איגנסיו","x":"יום נסיעה לכיוון אקוודור.","legs":[{"m":"van","f":"צ'צ'פויאס","to":"באגואה גרנדה","dep":"","arr":"","note":"","ok":false},{"m":"van","f":"באגואה גרנדה","to":"חאאן","dep":"","arr":"","note":"","ok":false},{"m":"van","f":"חאאן","to":"סן איגנסיו","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"סן איגנסיו","s":"open","note":"","q":"San Ignacio, Peru"},"net":"move","nn":"","k":"travel","fl":""},{"d":"2027-04-16","p":"vilca","t":"חוצה לאקוודור","x":"מעבר גבול קטן ושקט, ונסיעה לעמק וילקבמבה.","legs":[{"m":"van","f":"סן איגנסיו","to":"לה בלסה","dep":"06:00","arr":"08:00","note":"","ok":false},{"m":"walk","f":"לה בלסה","to":"הגבול","dep":"09:00","arr":"10:00","note":"מעבר גבול","ok":false},{"m":"bus","f":"לה בלסה","to":"וילקבמבה","dep":"10:30","arr":"17:00","note":"דרך סומבה","ok":false}],"sl":{"n":"וילקבמבה","s":"open","note":"","q":"Vilcabamba, Ecuador"},"net":"move","nn":"כמעט בלי קליטה בדרך.","k":"travel","fl":""},{"d":"2027-04-17","p":"cuenca","t":"וילקבמבה ← קואנקה","x":"דרך לוחה לקואנקה הקולוניאלית.","legs":[{"m":"bus","f":"וילקבמבה","to":"קואנקה","dep":"","arr":"","note":"5–6 שעות","ok":false}],"sl":{"n":"קואנקה","s":"open","note":"","q":"Cuenca, Ecuador"},"net":"ok","nn":"","k":"travel","fl":""},{"d":"2027-04-18","p":"cuenca","t":"פארק קאחאס","x":"פארק של מאות אגמים קטנים בין ההרים.","legs":[],"sl":{"n":"קואנקה","s":"open","note":"","q":"Cuenca, Ecuador"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-04-19","p":"latac","t":"קואנקה ← לטקונגה","x":"נסיעה צפונה.","legs":[{"m":"bus","f":"קואנקה","to":"לטקונגה","dep":"","arr":"","note":"7 שעות","ok":false}],"sl":{"n":"לטקונגה","s":"open","note":"","q":"Latacunga, Ecuador"},"net":"ok","nn":"","k":"travel","fl":""},{"d":"2027-04-20","p":"isin","t":"לולאת קילוטואה — יום 1","x":"3 ימי הליכה בין כפרי הרים, עם לינה בהוסטלים.","legs":[{"m":"bus","f":"לטקונגה","to":"סיגצ'וס","dep":"","arr":"","note":"","ok":false},{"m":"walk","f":"סיגצ'וס","to":"איסינליבי","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"הוסטל באיסינליבי","s":"open","note":"","q":"Isinliví, Ecuador"},"net":"low","nn":"","k":"trek","fl":""},{"d":"2027-04-21","p":"chugch","t":"לולאת קילוטואה — יום 2","x":"הליכה לצ'וגצ'ילן.","legs":[{"m":"walk","f":"איסינליבי","to":"צ'וגצ'ילן","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"הוסטל בצ'וגצ'ילן","s":"open","note":"","q":"Chugchilán, Ecuador"},"net":"low","nn":"","k":"trek","fl":""},{"d":"2027-04-22","p":"quilo","t":"לולאת קילוטואה — יום 3","x":"הסיום: לגונת המכתש הטורקיזית של קילוטואה.","legs":[{"m":"walk","f":"צ'וגצ'ילן","to":"קילוטואה","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"קילוטואה","s":"open","note":"","q":"Quilotoa, Ecuador"},"net":"low","nn":"","k":"trek","fl":""},{"d":"2027-04-23","p":"quito","t":"קילוטואה ← קיטו","x":"אוטובוסים דרך לטקונגה לקיטו.","legs":[{"m":"bus","f":"קילוטואה","to":"לטקונגה","dep":"","arr":"","note":"","ok":false},{"m":"bus","f":"לטקונגה","to":"קיטו","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"קיטו","s":"open","note":"","q":"La Floresta, Quito"},"net":"ok","nn":"","k":"travel","fl":""},{"d":"2027-04-24","p":"gsc","t":"טיסה לגלפגוס","x":"טיסה מקיטו לאיי גלפגוס (בגלפגוס השעון שעה אחורה מקיטו).","legs":[{"m":"flight","f":"קיטו","to":"בלטרה (גלפגוס)","dep":"","arr":"","note":"דרך גואיאקיל","ok":false},{"m":"ferry","f":"בלטרה","to":"פוארטו איורה","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"סנטה קרוז, גלפגוס","s":"open","note":"","q":"Puerto Ayora, Galápagos"},"net":"move","nn":"","k":"travel","fl":"גלפגוס עוד לא סופי. אם יוותר: קוטופקסי, באניוס ומינדו, וטיסה מקיטו לבוגוטה ב־30.4"},{"d":"2027-04-25","p":"gsc","t":"גלפגוס — צלילה","x":"צלילה מודרכת בין אריות ים, צבי ים ודגים.","legs":[],"sl":{"n":"סנטה קרוז, גלפגוס","s":"open","note":"","q":"Puerto Ayora, Galápagos"},"net":"low","nn":"","k":"city","fl":"גלפגוס עוד לא סופי. אם יוותר: קוטופקסי, באניוס ומינדו, וטיסה מקיטו לבוגוטה ב־30.4"},{"d":"2027-04-26","p":"gsc","t":"גלפגוס — צלילה","x":"עוד יום צלילה.","legs":[],"sl":{"n":"סנטה קרוז, גלפגוס","s":"open","note":"","q":"Puerto Ayora, Galápagos"},"net":"low","nn":"","k":"city","fl":"גלפגוס עוד לא סופי. אם יוותר: קוטופקסי, באניוס ומינדו, וטיסה מקיטו לבוגוטה ב־30.4"},{"d":"2027-04-27","p":"gsx","t":"סנטה קרוז ← סן כריסטובל","x":"סירה מהירה לאי סן כריסטובל. שנורקל עם אריות ים.","legs":[{"m":"boat","f":"סנטה קרוז","to":"סן כריסטובל","dep":"07:00","arr":"09:30","note":"","ok":false}],"sl":{"n":"סן כריסטובל, גלפגוס","s":"open","note":"","q":"Puerto Baquerizo Moreno, Galápagos"},"net":"low","nn":"","k":"travel","fl":"גלפגוס עוד לא סופי. אם יוותר: קוטופקסי, באניוס ומינדו, וטיסה מקיטו לבוגוטה ב־30.4"},{"d":"2027-04-28","p":"gsx","t":"גלפגוס — צלילה ב־Kicker Rock","x":"הצלילה האחרונה בטיול.","legs":[],"sl":{"n":"סן כריסטובל, גלפגוס","s":"open","note":"","q":"Puerto Baquerizo Moreno, Galápagos"},"net":"low","nn":"","k":"city","fl":"גלפגוס עוד לא סופי. אם יוותר: קוטופקסי, באניוס ומינדו, וטיסה מקיטו לבוגוטה ב־30.4"},{"d":"2027-04-29","p":"gsx","t":"גלפגוס","x":"יום אחרון באיים, בלי צלילה לפני הטיסה.","legs":[],"sl":{"n":"סן כריסטובל, גלפגוס","s":"open","note":"","q":"Puerto Baquerizo Moreno, Galápagos"},"net":"low","nn":"","k":"city","fl":"גלפגוס עוד לא סופי. אם יוותר: קוטופקסי, באניוס ומינדו, וטיסה מקיטו לבוגוטה ב־30.4"},{"d":"2027-04-30","p":"bog","t":"טיסה לבוגוטה","x":"טיסה דרך גואיאקיל לבוגוטה. קולומביה, השלב האחרון.","legs":[{"m":"flight","f":"סן כריסטובל","to":"גואיאקיל","dep":"","arr":"","note":"","ok":false},{"m":"flight","f":"גואיאקיל","to":"בוגוטה","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"בוגוטה","s":"open","note":"","q":"Chapinero, Bogotá"},"net":"move","nn":"","k":"travel","fl":""},{"d":"2027-05-01","p":"leyva","t":"שבוע האופנוע — לווייה דה לייבה","x":"אוסף אופנוע ורוכב לעיירה הקולוניאלית וייה דה לייבה.","legs":[{"m":"moto","f":"בוגוטה","to":"וייה דה לייבה","dep":"08:00","arr":"12:00","note":"","ok":false}],"sl":{"n":"וייה דה לייבה","s":"open","note":"","q":"Villa de Leyva, Colombia"},"net":"move","nn":"","k":"travel","fl":""},{"d":"2027-05-02","p":"leyva","t":"וייה דה לייבה","x":"הכיכר הענקית, מאובנים ובריכות Pozos Azules.","legs":[],"sl":{"n":"וייה דה לייבה","s":"open","note":"","q":"Villa de Leyva, Colombia"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-05-03","p":"barich","t":"וייה דה לייבה ← ברצ'רה","x":"רכיבה לברצ'רה, העיירה היפה בקולומביה.","legs":[{"m":"moto","f":"וייה דה לייבה","to":"ברצ'רה","dep":"","arr":"","note":"4–5 שעות","ok":false}],"sl":{"n":"ברצ'רה","s":"open","note":"","q":"Barichara, Colombia"},"net":"move","nn":"","k":"travel","fl":""},{"d":"2027-05-04","p":"barich","t":"ברצ'רה וסן חיל","x":"Camino Real ברגל לגואנה, או יום רגוע בעיירה.","legs":[],"sl":{"n":"ברצ'רה","s":"open","note":"","q":"Barichara, Colombia"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-05-05","p":"barich","t":"קניון צ'יקמוצ'ה","x":"יום רכיבה לקניון צ'יקמוצ'ה.","legs":[{"m":"moto","f":"ברצ'רה","to":"צ'יקמוצ'ה וחזרה","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"ברצ'רה","s":"open","note":"","q":"Barichara, Colombia"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-05-06","p":"barich","t":"ברצ'רה וסן חיל","x":"יום מנוחה בעיירה.","legs":[],"sl":{"n":"ברצ'רה","s":"open","note":"","q":"Barichara, Colombia"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-05-07","p":"bog","t":"ברצ'רה ← בוגוטה","x":"רכיבה חזרה לבוגוטה והחזרת האופנוע.","legs":[{"m":"moto","f":"ברצ'רה","to":"בוגוטה","dep":"07:00","arr":"14:00","note":"","ok":false}],"sl":{"n":"בוגוטה","s":"open","note":"","q":"Chapinero, Bogotá"},"net":"move","nn":"","k":"travel","fl":""},{"d":"2027-05-08","p":"jardin","t":"בוגוטה ← מדיין ← חרדין","x":"טיסה למדיין ואוטובוס לכפר הקפה חרדין.","legs":[{"m":"flight","f":"בוגוטה","to":"מדיין","dep":"","arr":"","note":"","ok":false},{"m":"bus","f":"מדיין (Terminal Sur)","to":"חרדין","dep":"","arr":"","note":"3–4 שעות","ok":false}],"sl":{"n":"חרדין","s":"open","note":"","q":"Jardín, Antioquia"},"net":"move","nn":"","k":"travel","fl":""},{"d":"2027-05-09","p":"jardin","t":"חרדין","x":"סיור קפה אצל מגדל, ו־Cueva del Esplendor.","legs":[],"sl":{"n":"חרדין","s":"open","note":"","q":"Jardín, Antioquia"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-05-10","p":"jardin","t":"חרדין","x":"יום אחרון בכפר.","legs":[],"sl":{"n":"חרדין","s":"open","note":"","q":"Jardín, Antioquia"},"net":"ok","nn":"","k":"city","fl":""},{"d":"2027-05-11","p":"bog","t":"חרדין ← מדיין ← בוגוטה","x":"אוטובוס מוקדם למדיין, וטיסת ערב לבוגוטה.","legs":[{"m":"bus","f":"חרדין","to":"מדיין","dep":"06:00","arr":"10:00","note":"","ok":false},{"m":"flight","f":"מדיין","to":"בוגוטה","dep":"","arr":"","note":"","ok":false}],"sl":{"n":"בוגוטה","s":"open","note":"","q":"Chapinero, Bogotá"},"net":"move","nn":"","k":"travel","fl":""},{"d":"2027-05-12","p":"bog","t":"יום אחרון — טס הביתה","x":"בוקר במוזיאון הזהב ובמונסראטה, ובערב טיסה הביתה.","legs":[{"m":"flight","f":"בוגוטה","to":"תל אביב","dep":"","arr":"","note":"בערב","ok":false}],"sl":{"n":"בטיסה הביתה","s":"home","note":"","q":""},"net":"move","nn":"","k":"travel","fl":""}],"updated":"17.11.2026"}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="https://unpkg.com/lucide@0.453.0/dist/umd/lucide.min.js"></script>
+<script>
+const T = JSON.parse(document.getElementById('trip').textContent);
+const P = T.places, DAYS = T.days, IDX = Object.fromEntries(DAYS.map((d,i)=>[d.d,i]));
+const CN = {CL:"צ'ילה",AR:"ארגנטינה",BO:"בוליביה",PE:"פרו",EC:"אקוודור",CO:"קולומביה"};
+const MODE = {flight:["טיסה","plane"],bus:["אוטובוס","bus"],ferry:["מעבורת","ship"],boat:["סירה","sailboat"],walk:["ברגל","footprints"],van:["מיניוואן / הסעה","car-front"],taxi:["מונית","car-taxi-front"],moto:["אופנוע","bike"],jeep:["ג'יפ","truck"]};
+const NET = {ok:["זמין","wifi","n-ok"],low:["קליטה חלשה","signal-low","n-low"],none:["בטבע, בלי קליטה","trees","n-none"],move:["יום נסיעה","route","n-move"]};
+const KIND = {travel:"יום מעבר",trek:"יום בטבע",city:"יום במקום"};
+const SL = {booked:"",open:"",tent:"קמפינג",transit:"לילה בנסיעה",included:"לינה במסגרת הסיור",home:"בדרך הביתה"};
+const WD = ["ראשון","שני","שלישי","רביעי","חמישי","שישי","שבת"];
+const MON = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
+const $ = s=>document.querySelector(s);
+const esc = s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const dparts = iso=>{const [y,m,d]=iso.split('-').map(Number);return {y,m,d,wd:new Date(Date.UTC(y,m-1,d)).getUTCDay()}};
+const short = iso=>{const p=dparts(iso);return `${p.d}.${p.m}`};
+const longD = iso=>{const p=dparts(iso);return `יום ${WD[p.wd]}, ${p.d} ב${MON[p.m-1]} ${p.y}`};
+const ccol = c=>getComputedStyle(document.documentElement).getPropertyValue('--c-'+c).trim();
+const icon = (n,cls='')=>`<i data-lucide="${n}" class="${cls}"></i>`;
+const drawIcons = ()=>{try{window.lucide&&lucide.createIcons()}catch(e){}};
+$('#upd').textContent = T.updated;
+
+function dateIn(tz, now=new Date()){
+  try{return new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit'}).format(now)}catch(e){return now.toISOString().slice(0,10)}
+}
+function todayIndex(){
+  const now = new Date();
+  for(let i=0;i<DAYS.length;i++){ if(dateIn(P[DAYS[i].p].tz,now)===DAYS[i].d) return i; }
+  return null;
+}
+function phase(){
+  const now=new Date(); const first=DAYS[0].d, last=DAYS[DAYS.length-1].d;
+  if(dateIn(P[DAYS[0].p].tz,now) < first) return 'before';
+  if(dateIn(P[DAYS[DAYS.length-1].p].tz,now) > last) return 'after';
+  return 'during';
+}
+const stageOf = iso=>T.stages.findIndex(s=>iso>=s.a && iso<=s.b);
+
+let sel = 0;
+
+/* ---------- clocks ---------- */
+function tick(){
+  const p = P[DAYS[sel].p];
+  const f = tz=>new Intl.DateTimeFormat('he-IL',{timeZone:tz,hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date());
+  $('#clkO').textContent = f(p.tz); $('#clkI').textContent = f('Asia/Jerusalem');
+  const off = tz=>{const s=new Date().toLocaleString('en-US',{timeZone:tz});return new Date(s).getTime()};
+  const diff = Math.round((off('Asia/Jerusalem')-off(p.tz))/3600000);
+  $('#clkOl').textContent = `אצל עומר (${diff} שעות אחרי ישראל)`;
+}
+
+/* ---------- banner ---------- */
+function banner(){
+  const ph = phase(), b=$('#banner');
+  if(ph==='before'){
+    const n = Math.ceil((Date.UTC(2026,10,27) - Date.now())/86400000);
+    b.innerHTML = `<div class="banner">${icon('plane-takeoff')}<b>עומר עוד בארץ — טס בעוד ${n} ימים, ב־27.11.</b><span>בינתיים אפשר לדפדף בתכנון.</span></div>`;
+  } else if(ph==='after'){
+    b.innerHTML = `<div class="banner">${icon('house')}<b>עומר חזר הביתה מהטיול.</b></div>`;
+  } else b.innerHTML='';
+}
+
+/* ---------- render selected day ---------- */
+function blocks(net){ // contiguous runs of a net state
+  const out=[]; let s=null;
+  DAYS.forEach((d,i)=>{ if(d.net===net){ if(s===null) s=i; } else if(s!==null){ out.push([s,i-1]); s=null; } });
+  if(s!==null) out.push([s,DAYS.length-1]); return out;
+}
+const NONE = blocks('none');
+function blockName(b){ const t=DAYS[b[0]].t.replace(/ — יום \d+$/,'').replace(/ — \d+ לילות באוהל$/,''); return t; }
+
+function render(){
+  const d = DAYS[sel], p = P[d.p], st = T.stages[stageOf(d.d)], ti = todayIndex();
+  const isToday = ti===sel;
+  $('#dtitle').textContent = longD(d.d);
+  $('#dnum').textContent = `יום ${sel+1} מתוך ${DAYS.length}` + (isToday?' · היום':'');
+  $('#prev').disabled = sel===0; $('#next').disabled = sel===DAYS.length-1;
+  $('#todayBtn').setAttribute('aria-pressed', String(isToday));
+  $('#todayBtn').style.display = ti===null ? 'none' : '';
+
+  const n = NET[d.net];
+  $('#hero').innerHTML = `
+    <div class="eyebrow"><span class="cdot" style="background:${ccol(p.c)}"></span>${CN[p.c]}${st&&st.n!==CN[p.c]?' · '+esc(st.n):''}</div>
+    <div class="place">${esc(p.n)}</div>
+    <div class="local">${esc(p.en)}</div>
+    <p class="dtext"><b>${esc(d.t)}.</b> ${esc(d.x)}</p>
+    <div class="chips">
+      <span class="chip ${n[2]}">${icon(n[1])}${n[0]}</span>
+      ${d.net==='move'?'':`<span class="chip k-chip">${icon(d.k==='trek'?'mountain':d.k==='travel'?'route':'map-pin')}${KIND[d.k]}</span>`}
+    </div>
+    ${d.fl?`<div class="flag">${esc(d.fl)}</div>`:''}
+    <div class="quick">
+      <div>${icon(d.sl.s==='tent'?'tent':d.sl.s==='transit'?'bus':'bed-double')}<span><b>ישן ב:</b> ${esc(d.sl.n)}</span></div>
+      ${d.legs.length?`<div>${icon('route')}<span><b>היום בדרך:</b> ${esc(d.legs.map(l=>(MODE[l.m]||[l.m])[0]).filter((v,i,a)=>a.indexOf(v)===i).join(', '))}</span></div>`:''}
+    </div>`;
+
+  $('#legs').innerHTML = d.legs.length ? d.legs.map(l=>{
+    const m = MODE[l.m]||[l.m,'circle']; const time = l.dep||l.arr ? `<span class="t"><bdi>${esc(l.dep||'?')}</bdi>${l.arr?' ← <bdi>'+esc(l.arr)+'</bdi>':''}</span>` : '';
+    return `<li class="leg"><div class="ic ${l.m}">${icon(m[1])}</div><div>
+      <div class="route"><bdi>${esc(l.f)}</bdi> ← <bdi>${esc(l.to)}</bdi></div>
+      <div class="meta"><span>${m[0]}</span>${time}${l.note?`<span>${esc(l.note)}</span>`:''}</div></div></li>`;
+  }).join('') : `<p class="empty">אין מעבר היום — נשאר ב${esc(p.n.split(',')[0])}.</p>`;
+
+  const s = d.sl;
+  $('#sleep').innerHTML = `<div class="sleep"><div class="leg"><div class="ic">${icon(s.s==='tent'?'tent':s.s==='transit'?'bus':s.s==='home'?'plane':'bed-double')}</div></div>
+    <div><div class="big">${esc(s.n)}</div>${SL[s.s]?`<span class="st st-${s.s}">${SL[s.s]}</span>`:''}${s.note?`<div class="local" style="direction:rtl;margin-top:4px">${esc(s.note)}</div>`:''}</div></div>
+    ${s.q?`<a class="photobtn" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.q)}" target="_blank" rel="noopener">${icon('images')}תמונות</a>`:''}`;
+
+  // reachability
+  let r = `<span class="chip ${n[2]}">${icon(n[1])}${n[0]}</span>`;
+  if(d.nn) r += `<p>${esc(d.nn)}</p>`;
+  const cur = NONE.find(b=>sel>=b[0]&&sel<=b[1]);
+  if(cur){ const back = DAYS[Math.min(cur[1]+1,DAYS.length-1)];
+    r += `<p>בטבע, בלי קליטה ${cur[0]===cur[1]?'ב־'+short(DAYS[cur[0]].d):`מ־${short(DAYS[cur[0]].d)} עד ${short(DAYS[cur[1]].d)}`}. אפשר לצפות להודעה ממנו ב־${short(back.d)}.</p>`; }
+  const nx = NONE.find(b=>b[0]>sel);
+  if(nx){ const inD = nx[0]-sel;
+    r += `<div class="upcoming">הימים הבאים בטבע, בלי קליטה: <button class="linkish" data-go="${nx[0]}">${short(DAYS[nx[0]].d)}${nx[1]>nx[0]?'–'+short(DAYS[nx[1]].d):''} · ${esc(blockName(nx))}</button> (בעוד ${inD} ${inD===1?'יום':'ימים'})</div>`; }
+  $('#reach').innerHTML = r;
+
+  const si = stageOf(d.d);
+  document.querySelectorAll('.stages button').forEach((b,i)=>b.classList.toggle('cur',i===si));
+  document.querySelectorAll('.dcell.in').forEach(c=>c.classList.toggle('sel',c.dataset.d===d.d));
+  $('#gmaps').href = `https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}`;
+  tick(); drawIcons(); mapSelect();
+  try{ if(location.hash !== '#d-'+d.d) history.replaceState(null,'','#d-'+d.d); }catch(e){}
+}
+function go(i){ sel = Math.max(0,Math.min(DAYS.length-1,i)); render(); }
+
+/* ---------- stages + calendar ---------- */
+function buildSide(){
+  $('#stages').innerHTML = T.stages.map((s,i)=>{
+    const nights = (IDX[s.b]-IDX[s.a]) + (i===T.stages.length-1?0:1);
+    return `<li><button data-go="${IDX[s.a]}" title="${short(s.a)}–${short(s.b)} · ${nights} לילות"><span class="num">${i+1}</span>${esc(s.n.split(':')[0])} · ${short(s.a)}</button></li>`}).join('');
+  $('#calLegend').innerHTML = Object.entries(CN).map(([k,v])=>`<span><span class="cdot" style="background:${ccol(k)}"></span>${v}</span>`).join('')
+    + `<span><span style="width:14px;height:3px;background:var(--bad);border-radius:2px;display:inline-block"></span>בטבע, בלי קליטה</span>`
+    + `<span><span class="cdot" style="background:var(--ink);opacity:.55;width:6px;height:6px"></span>יום מעבר</span>`;
+  const ti = todayIndex(); const months=[];
+  for(let y=2026,m=11; y<2027||m<=5; ){ months.push([y,m]); m++; if(m>12){m=1;y++;} }
+  $('#months').innerHTML = months.map(([y,m])=>{
+    const first = new Date(Date.UTC(y,m-1,1)).getUTCDay(); const len = new Date(Date.UTC(y,m,0)).getUTCDate();
+    let cells = ['א','ב','ג','ד','ה','ו','ש'].map(w=>`<div class="h">${w}׳</div>`).join('');
+    for(let i=0;i<first;i++) cells += '<div></div>';
+    for(let dd=1;dd<=len;dd++){
+      const iso = `${y}-${String(m).padStart(2,'0')}-${String(dd).padStart(2,'0')}`; const i = IDX[iso];
+      if(i===undefined){ cells += `<button class="dcell out" disabled tabindex="-1">${dd}</button>`; continue; }
+      const dy = DAYS[i], c = P[dy.p].c;
+      cells += `<button class="dcell in ${dy.net==='none'?'none':''} ${dy.k==='travel'?'travel':''} ${i===ti?'today':''}" style="--cc:${ccol(c)}" data-go="${i}" data-d="${iso}" aria-label="${esc(longD(iso))}: ${esc(P[dy.p].n)}" title="${esc(P[dy.p].n)}">${dd}</button>`;
+    }
+    return `<div class="month"><h3>${MON[m-1]} ${y}</h3><div class="wk">${cells}</div></div>`;
+  }).join('');
+}
+document.addEventListener('click',e=>{ const b=e.target.closest('[data-go]'); if(b){ go(+b.dataset.go); if(b.closest('#months')||b.closest('.stages')) window.scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'}); } });
+$('#prev').onclick=()=>go(sel-1); $('#next').onclick=()=>go(sel+1);
+$('#todayBtn').onclick=()=>{const t=todayIndex(); if(t!==null) go(t);};
+document.addEventListener('keydown',e=>{ if(e.target.matches('input')) return; if(e.key==='ArrowLeft') go(sel+1); if(e.key==='ArrowRight') go(sel-1); });
+window.addEventListener('hashchange',()=>{ const m=location.hash.match(/^#d-(\d{4}-\d{2}-\d{2})$/); if(m&&IDX[m[1]]!==undefined&&IDX[m[1]]!==sel) go(IDX[m[1]]); });
+
+/* ---------- map ---------- */
+let M = null;
+function mapSelect(){ if(M) M.select(sel); }
+async function initMap(){
+  const svg = d3.select('#map'); const node = svg.node();
+  let geo;
+  try{ geo = await (await fetch(innerWidth<760?'sa-lite.json':'sa.json')).json(); }catch(e){ node.insertAdjacentHTML('afterend','<div class="maperr">המפה לא נטענה. אפשר לפתוח את המקום בגוגל מפות בקישור למטה.</div>'); return; }
+  const W = ()=>node.clientWidth, H = ()=>node.clientHeight;
+  const proj = d3.geoMercator(); const path = d3.geoPath(proj);
+  const fit = ()=>proj.fitExtent([[10,10],[W()-10,H()-10]],{type:'MultiPoint',coordinates:[[-81.5,12.5],[-34.8,-55.5]]});
+  fit();
+  const g = svg.append('g');
+  const route = new Set(['032','068','152','170','218','604']);
+  const ISO = {'032':'AR','068':'BO','152':'CL','170':'CO','218':'EC','604':'PE'};
+  const gc = g.append('g').selectAll('path').data(geo.features).join('path')
+    .attr('d',path).attr('fill',d=>ISO[d.id]?`color-mix(in srgb,var(--c-${ISO[d.id]}) 34%,var(--land))`:'var(--land)')
+    .attr('stroke','var(--border)').attr('stroke-width',.8);
+  const clbl = g.append('g').selectAll('text').data(geo.features.filter(f=>route.has(f.id))).join('text')
+    .attr('class','clbl').attr('text-anchor','middle').text(d=>d.properties.n);
+  const cpos = {'032':[-66,-37],'068':[-64.5,-16.5],'152':[-70.6,-27],'170':[-73.5,3.6],'218':[-78.2,-1.6],'604':[-75.5,-9.5]};
+
+  // route points
+  const pts = DAYS.map(d=>{ const p=P[d.p]; return {d, p, xy:proj([p.lon,p.lat])}; });
+  const gr = g.append('g'), gt = g.append('g'), gs = g.append('g'), gsel = g.append('g');
+  const segs = [];
+  for(let i=1;i<pts.length;i++){ if(pts[i].d.p===pts[i-1].d.p) continue;
+    const fly = pts[i].d.legs.some(l=>l.m==='flight');
+    const chain = [pts[i-1], ...(pts[i].d.via||[]).map(k=>({d:{p:k}, p:P[k], xy:proj([P[k].lon,P[k].lat])})), pts[i]];
+    for(let j=1;j<chain.length;j++) segs.push({i, a:chain[j-1], b:chain[j], fly}); }
+  const segPath = s=>{ const [x0,y0]=proj([s.a.p.lon,s.a.p.lat]), [x1,y1]=proj([s.b.p.lon,s.b.p.lat]);
+    if(!s.fly) return `M${x0},${y0}L${x1},${y1}`;
+    const mx=(x0+x1)/2, my=(y0+y1)/2, dx=x1-x0, dy=y1-y0, k=.18; return `M${x0},${y0}Q${mx-dy*k},${my+dx*k} ${x1},${y1}`; };
+  const segSel = gr.selectAll('path').data(segs).join('path').attr('fill','none').attr('stroke-linecap','round')
+    .attr('vector-effect','non-scaling-stroke');
+  const today = gt.append('path').attr('fill','none').attr('stroke','var(--sun)').attr('stroke-width',5).attr('stroke-linecap','round').attr('vector-effect','non-scaling-stroke');
+  const uniq = []; const seen=new Set(); pts.forEach(q=>{ if(!seen.has(q.d.p)){seen.add(q.d.p); uniq.push(q);} });
+  const GROUP = {junta:'junta',cc1:'cc1',cc2:'cc1',cc3:'cc1',pgrande:'pgrande',frances:'pgrande',central:'pgrande',mgrey:'pgrande',britanico:'pgrande',mtorres:'pgrande',hu1:'hu1',hu2:'hu1',hu3:'hu1',nv1:'nv1',nv2:'nv1',nv3:'nv1',ch1:'ch1',ch2:'ch1',ch3:'ch1',sc1:'sc1',sc2:'sc1',sc3:'sc1'};
+  const TREKN = {junta:"עמק קוצ'אמו",cc1:'טרק סרו קסטייו',pgrande:'ה־W, טורס דל פאינה',hu1:'מעגל הואמול',nv1:'דיינטס דה נבארינו',ch1:"טרק צ'וקקיראו",sc1:'טרק סנטה קרוז'};
+  const TK = k=>k in GROUP;
+  segs.forEach(s=>s.trek = TK(s.a.d.p)&&TK(s.b.d.p));
+  const dots = gs.selectAll('circle').data(uniq.filter(q=>!TK(q.d.p))).join('circle').attr('fill','var(--card)').attr('stroke','var(--accent)').attr('vector-effect','non-scaling-stroke')
+    .style('cursor','pointer').on('click',(e,q)=>go(IDX[q.d.d]));
+  dots.append('title').text(q=>q.p.n);
+  const tri = gs.selectAll('path.tri').data(uniq.filter(q=>TK(q.d.p))).join('path').attr('class','tri')
+    .attr('d',d3.symbol(d3.symbolTriangle,110)()).attr('fill','var(--trek)').attr('stroke','var(--card)').attr('stroke-width',1.5)
+    .attr('vector-effect','non-scaling-stroke').style('cursor','pointer').on('click',(e,q)=>go(IDX[q.d.d]));
+  tri.append('title').text(q=>q.p.n);
+  const tl = gs.selectAll('text.tlbl').data(uniq.filter(q=>TREKN[q.d.p])).join('text').attr('class','lbl tlbl').attr('text-anchor','middle').text(q=>TREKN[q.d.p]);
+  // viewpoints visited on day hikes inside a trek (not nights): small green dots + names
+  const VIA = []; const seenV = new Set();
+  DAYS.forEach(d=>(d.via||[]).forEach(k=>{ if(TK(k) && !seenV.has(k) && !DAYS.some(x=>x.p===k)){ seenV.add(k); VIA.push({k, n:P[k].n, xy:proj([P[k].lon,P[k].lat])}); } }));
+  const vdots = gs.selectAll('circle.vpt').data(VIA).join('circle').attr('class','vpt').attr('fill','var(--trek)').attr('stroke','var(--card)').attr('vector-effect','non-scaling-stroke');
+  vdots.append('title').text(v=>v.n);
+  const vl = gs.selectAll('text.vlbl').data(VIA).join('text').attr('class','lbl tlbl vlbl').attr('text-anchor','middle').text(v=>v.n);
+  const major = uniq.filter(q=>!TK(q.d.p) && !/לילה|^אוטובוס|^מעבורת|טרק|סיור|הואמול|נבארינו/.test(q.p.n));
+  const lbls = gs.selectAll('text.mlbl').data(major).join('text').attr('class','lbl mlbl').attr('text-anchor','middle').text(q=>q.p.n.split(',')[0].split(' (')[0]);
+  const halo = gsel.append('circle').attr('fill','var(--sun)').attr('class','pulse');
+  const pin = gsel.append('circle').attr('fill','var(--sun)').attr('stroke','var(--card)').attr('vector-effect','non-scaling-stroke');
+  const pinL = gsel.append('text').attr('class','lbl').attr('text-anchor','middle');
+
+  let K = 1;
+  function restyle(k, full=true){
+    K = k;
+    if(full) gc.attr('stroke-width',.8/k);
+    clbl.attr('x',d=>proj(cpos[d.id])[0]).attr('y',d=>proj(cpos[d.id])[1]).attr('font-size',15/k);
+    dots.attr('cx',q=>q.xy[0]).attr('cy',q=>q.xy[1]).attr('r',3.6/k).attr('stroke-width',1.6);
+    tri.attr('transform',q=>`translate(${q.xy[0]},${q.xy[1]}) scale(${1/k})`);
+    vdots.attr('cx',v=>v.xy[0]).attr('cy',v=>v.xy[1]).attr('r',3.4/k).attr('stroke-width',1.3);
+    vl.attr('x',v=>v.xy[0]).attr('y',v=>v.xy[1]-7/k).attr('font-size',11/k).attr('stroke-width',3/k);
+    tl.attr('x',q=>q.xy[0]).attr('y',q=>q.xy[1]+20/k).attr('font-size',12/k).attr('stroke-width',3.5/k)
+
+    lbls.attr('x',q=>q.xy[0]).attr('y',q=>q.xy[1]-7/k).attr('font-size',11/k).attr('stroke-width',3/k);
+    const q = pts[sel];
+    pin.attr('cx',q.xy[0]).attr('cy',q.xy[1]).attr('r',7/k).attr('stroke-width',2.5);
+    halo.attr('cx',q.xy[0]).attr('cy',q.xy[1]).style('--r0',(7/k)+'px').style('--r1',(26/k)+'px').attr('r',7/k);
+    pinL.attr('x',q.xy[0]).attr('y',q.xy[1]-14/k).attr('font-size',14/k).attr('stroke-width',4/k).text(q.p.n.split(' — ')[0].split(',')[0]);
+    if(full) declutter(k);
+  }
+  // Labels never overlap: place them by priority in screen space, hide any that would collide.
+  const NIGHTS = {}; DAYS.forEach(d=>NIGHTS[d.p]=(NIGHTS[d.p]||0)+1);
+  const majorOrder = lbls.nodes().sort((a,b)=>(NIGHTS[b.__data__.d.p]||0)-(NIGHTS[a.__data__.d.p]||0));
+  let ZT = d3.zoomIdentity;
+  function declutter(k){
+    const placed = [];
+    const box = el=>{ const b=el.getBBox(); return [ZT.applyX(b.x),ZT.applyY(b.y),ZT.applyX(b.x+b.width),ZT.applyY(b.y+b.height)]; };
+    const hit = a=>placed.some(p=>a[0]<p[2]+3 && a[2]>p[0]-3 && a[1]<p[3]+2 && a[3]>p[1]-2);
+    const tryPlace = (el, allowed)=>{ if(!allowed){ el.style.display='none'; return; } el.style.display=''; const b=box(el); if(hit(b)) el.style.display='none'; else placed.push(b); };
+    const pn = pinL.node(); pn.style.display=''; placed.push(box(pn)); placed.push(box(pin.node()));
+    const selP = pts[sel].d.p;
+    tl.each(function(q){ tryPlace(this, k>=2.5 && GROUP[selP]!==q.d.p); });
+    vl.each(function(){ tryPlace(this, k>=6); });
+    majorOrder.forEach(el=>tryPlace(el, k>=3 && el.__data__.d.p!==selP));
+    clbl.each(function(){ tryPlace(this, k<=9); });
+  }
+  let raf = 0;
+  const zoom = d3.zoom().scaleExtent([1,300])
+    .on('start',()=>node.classList.add('moving'))
+    .on('zoom',e=>{ ZT = e.transform; g.attr('transform',e.transform);
+      if(!raf) raf = requestAnimationFrame(()=>{ raf = 0; restyle(ZT.k, false); }); })
+    .on('end',()=>{ node.classList.remove('moving'); if(raf){ cancelAnimationFrame(raf); raf = 0; } restyle(ZT.k, true); });
+  svg.call(zoom).on('dblclick.zoom',null);
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function flyTo(bounds, kMax){
+    const [[x0,y0],[x1,y1]] = bounds; const w=W(), h=H();
+    const k = Math.min(kMax, .7/Math.max((x1-x0)/w,(y1-y0)/h,1e-6));
+    const t = d3.zoomIdentity.translate(w/2,h/2).scale(k).translate(-(x0+x1)/2,-(y0+y1)/2);
+    (reduce?svg:svg.transition().duration(800)).call(zoom.transform,t);
+  }
+  M = {
+    select(i){
+      const d = DAYS[i], q = pts[i];
+      segSel.attr('stroke',s=>s.trek?'var(--trek)':s.i<=i?'var(--accent)':'var(--muted)').attr('stroke-opacity',s=>s.i<=i?1:.6).attr('stroke-width',s=>s.trek?3.2:s.i<=i?2.6:1.8)
+        .attr('stroke-dasharray',s=>s.fly?'6 6':null).attr('d',segPath);
+      const prev = i>0 ? pts[i-1] : null;
+      const moved = prev && prev.d.p!==d.p;
+      today.attr('d', moved ? segs.filter(s=>s.i===i).map(segPath).join('') : null).attr('stroke-dasharray', moved&&d.legs.some(l=>l.m==='flight')?'8 7':null);
+      dots.attr('stroke',x=>IDX[x.d.d]<=i?'var(--accent)':'var(--border)');
+      restyle(K);
+      if(moved){ const xs=[prev.xy[0],q.xy[0]], ys=[prev.xy[1],q.xy[1]];
+        const pad=TK(d.p)?0.6:40; flyTo([[Math.min(...xs)-pad,Math.min(...ys)-pad],[Math.max(...xs)+pad,Math.max(...ys)+pad]], TK(d.p)?120:40); }
+      else { const r=TK(d.p)?0.8:60; flyTo([[q.xy[0]-r,q.xy[1]-r],[q.xy[0]+r,q.xy[1]+r]], TK(d.p)?120:12); }
+    },
+    all(){ const w=W(),h=H(); (reduce?svg:svg.transition().duration(700)).call(zoom.transform,d3.zoomIdentity); }
+  };
+  $('#zin').onclick=()=>svg.transition().duration(300).call(zoom.scaleBy,1.8);
+  $('#zout').onclick=()=>svg.transition().duration(300).call(zoom.scaleBy,1/1.8);
+  $('#zall').onclick=()=>M.all();
+  window.addEventListener('resize',()=>{ fit(); gc.attr('d',path); pts.forEach(q=>q.xy=proj([q.p.lon,q.p.lat])); uniq.forEach(q=>q.xy=proj([q.p.lon,q.p.lat])); VIA.forEach(v=>v.xy=proj([P[v.k].lon,P[v.k].lat])); M.select(sel); });
+  restyle(1); M.select(sel);
+}
+
+/* ---------- start ---------- */
+(function start(){
+  const m = location.hash.match(/^#d-(\d{4}-\d{2}-\d{2})$/);
+  const ti = todayIndex();
+  sel = (m && IDX[m[1]]!==undefined) ? IDX[m[1]] : (ti!==null ? ti : (phase()==='after'?DAYS.length-1:0));
+  banner(); buildSide(); render(); setInterval(tick,30000);
+  if(window.d3) initMap(); else document.getElementById('map').insertAdjacentHTML('afterend','<div class="maperr">המפה לא נטענה. אפשר לפתוח את המקום בגוגל מפות בקישור למטה.</div>');
+})();
+</script>
+</body>
+</html>
