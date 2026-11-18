@@ -43,6 +43,8 @@ html,body{margin:0;overflow-x:clip}
 @media (max-width:480px){html.big .daynav .w{display:none} html.big .pick{min-width:5.5rem}}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:1.125rem;line-height:1.6;-webkit-font-smoothing:antialiased;padding-bottom:calc(var(--tabh) + env(safe-area-inset-bottom,0px) + 1rem)}
 button,input{font:inherit;color:inherit}
+/* no double-tap zoom when tapping buttons quickly (pinch zoom still works) */
+html,body,button,a,label,input{touch-action:manipulation}
 button{cursor:pointer}
 :focus-visible{outline:3px solid var(--sun);outline-offset:2px;border-radius:8px}
 bdi{unicode-bidi:isolate}
