@@ -186,6 +186,29 @@ h2 svg{width:1.4rem;height:1.4rem;color:var(--accent);flex:none}
 .trow.viewing:not(.now){outline:2px solid var(--accent)}
 .nowtag{display:inline-block;background:var(--sun);color:#1b1200;border-radius:999px;font-size:.8rem;font-weight:700;padding:0 .55rem;margin-inline-start:.35rem;vertical-align:middle}
 
+/* route view switch + calendar */
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:.3rem;background:var(--line);padding:.3rem;border-radius:1rem}
+.seg button{border:0;border-radius:.75rem;min-height:3rem;background:transparent;font-weight:700;font-size:1.02rem;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:.4rem}
+.seg button svg{width:1.25rem;height:1.25rem}
+.seg button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.calkey{display:flex;flex-wrap:wrap;gap:.4rem 1rem;font-size:.95rem}
+.calkey span{display:inline-flex;align-items:center;gap:.4rem}
+.calkey .sw{width:1.1rem;height:1.1rem;border-radius:.3rem;display:inline-block}
+.calkey .k-none{width:1.1rem;height:.3rem;border-radius:2px;background:var(--trek)}
+.calkey .k-today{width:1.1rem;height:1.1rem;border-radius:.3rem;box-shadow:inset 0 0 0 3px var(--sun)}
+.calkey .k-fly{font-size:.8rem}
+.months{display:grid;gap:1rem;grid-template-columns:repeat(auto-fill,minmax(17rem,1fr))}
+.month h3{font-size:1.15rem;margin:0 0 .45rem}
+.wk{display:grid;grid-template-columns:repeat(7,1fr);gap:.25rem}
+.wk .h{font-size:.85rem;color:var(--muted);text-align:center;font-weight:600}
+.dcell{aspect-ratio:1;border-radius:.55rem;border:0;font-size:1rem;font-variant-numeric:tabular-nums;display:grid;place-items:center;position:relative;background:transparent;padding:0;color:var(--ink)}
+.dcell.out{color:var(--muted);opacity:.35;cursor:default}
+.dcell.in{background:color-mix(in srgb,var(--cc) 45%,var(--card));font-weight:700}
+.dcell.past{opacity:.55}
+.dcell.none::after{content:"";position:absolute;bottom:12%;left:22%;right:22%;height:.22rem;border-radius:2px;background:var(--trek)}
+.dcell .fly{position:absolute;top:1px;inset-inline-end:3px;font-size:.6rem;line-height:1;opacity:.8}
+.dcell.today{box-shadow:inset 0 0 0 3px var(--sun)}
+.dcell.sel{outline:3px solid var(--ink);outline-offset:1px;z-index:1}
 /* map */
 #map{display:block;width:100%;height:100%;background:var(--sea)}
 #map.live{touch-action:none;cursor:grab}
@@ -277,8 +300,19 @@ svg .clbl{font-family:var(--display);fill:var(--muted);opacity:.7}
 
       <!-- ROUTE -->
       <section class="pane" id="pane-route" hidden>
-        <p class="intro">כל התחנות בטיול, לפי הסדר. לחיצה על תחנה מראה מה קורה שם.</p>
-        <div id="timeline"></div>
+        <div class="seg" role="group" aria-label="איך להציג">
+          <button id="vCal" aria-pressed="true"><i data-lucide="calendar-days"></i>לוח שנה</button>
+          <button id="vList" aria-pressed="false"><i data-lucide="list"></i>רשימת תחנות</button>
+        </div>
+        <div id="calView" class="pane">
+          <p class="intro">כל ימי הטיול. הצבע הוא המדינה. לחיצה על יום מראה מה קורה בו.</p>
+          <div class="calkey" id="calKey"></div>
+          <div class="months" id="months"></div>
+        </div>
+        <div id="listView" class="pane" hidden>
+          <p class="intro">כל התחנות בטיול, לפי הסדר. לחיצה על תחנה מראה מה קורה שם.</p>
+          <div id="timeline"></div>
+        </div>
       </section>
 
       <!-- MAP (mobile) -->
@@ -455,6 +489,7 @@ function render(noMap){
   // timeline marks
   const ri=rowOf(sel), rt=ti===null?-1:rowOf(ti);
   document.querySelectorAll('.trow').forEach((b,i)=>{ b.classList.toggle('viewing',i===ri); });
+  document.querySelectorAll('.dcell.in').forEach(c=>c.classList.toggle('sel',c.dataset.d===d.d));
   document.querySelectorAll('.legendbox .gm').forEach(a=>a.href=`https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}`);
   drawIcons(); if(M && !noMap) M.select(sel);
   try{ if(location.hash !== '#d-'+d.d) history.replaceState(null,'','#d-'+d.d); }catch(e){}
@@ -484,6 +519,36 @@ function buildTimeline(){
   $('#timeline').innerHTML = html;
 }
 
+/* ---------- calendar ---------- */
+function buildCalendar(){
+  const ti=todayIndex(), ph=phase();
+  $('#calKey').innerHTML = Object.entries(CN).map(([k,v])=>`<span><span class="sw" style="background:color-mix(in srgb,${ccol(k)} 45%,var(--card))"></span>${v}</span>`).join('')
+    + `<span><span class="k-none"></span>בלי קליטה</span><span><span class="k-fly">✈</span>טיסה</span>` + (ti!==null?`<span><span class="k-today"></span>היום</span>`:'');
+  const months=[]; for(let y=2026,m=11; y<2027||m<=5; ){ months.push([y,m]); m++; if(m>12){m=1;y++;} }
+  $('#months').innerHTML = months.map(([y,m])=>{
+    const first=new Date(Date.UTC(y,m-1,1)).getUTCDay(), len=new Date(Date.UTC(y,m,0)).getUTCDate();
+    // build week rows, then keep only weeks that have at least one trip day
+    const weeks=[]; let wk=[]; for(let i=0;i<first;i++) wk.push({html:'<div></div>',trip:false});
+    const push=(html,trip)=>{ wk.push({html,trip}); if(wk.length===7){ weeks.push(wk); wk=[]; } };
+    for(let dd=1;dd<=len;dd++){
+      const iso=`${y}-${String(m).padStart(2,'0')}-${String(dd).padStart(2,'0')}`, i=IDX[iso];
+      if(i===undefined){ push(`<button class="dcell out" disabled tabindex="-1">${dd}</button>`,false); continue; }
+      const x=DAYS[i], past = ph==='after' || (ti!==null && i<ti), fly=x.legs.some(l=>l.m==='flight');
+      push(`<button class="dcell in ${x.net==='none'?'none':''} ${i===ti?'today':''} ${past?'past':''}" style="--cc:${ccol(P[x.p].c)}" data-go="${i}" data-tab-to="today" data-d="${iso}" aria-label="${esc(longD(iso))}: ${esc(placeShort(P[x.p]))}" title="${esc(placeShort(P[x.p]))}">${dd}${fly?'<span class="fly">✈</span>':''}</button>`,true);
+    }
+    if(wk.length) weeks.push(wk);
+    const cells = WDS.map(w=>`<div class="h">${w}</div>`).join('') + weeks.filter(w=>w.some(c=>c.trip)).map(w=>w.map(c=>c.html).join('')).join('');
+    return `<div class="month"><h3>${MON[m-1]} ${y}</h3><div class="wk">${cells}</div></div>`;
+  }).join('');
+}
+function setView(v){
+  $('#vCal').setAttribute('aria-pressed',String(v==='cal')); $('#vList').setAttribute('aria-pressed',String(v==='list'));
+  $('#calView').hidden = v!=='cal'; $('#listView').hidden = v!=='list';
+  store.set('rv',v);
+  if(v==='list'){ const n=document.querySelector('.trow.now')||document.querySelector('.trow.viewing'); if(n) setTimeout(()=>n.scrollIntoView({block:'center'}),30); }
+}
+$('#vCal').onclick=()=>setView('cal'); $('#vList').onclick=()=>setView('list');
+
 /* ---------- tabs ---------- */
 let routeScrolled=false;
 function setTab(t){
@@ -494,7 +559,7 @@ function setTab(t){
   $('#daynav').style.display = t==='route' ? 'none' : '';
   document.body.classList.toggle('maptab',t==='map');
   placeMap();
-  if(t==='route' && !routeScrolled){ routeScrolled=true; const n=document.querySelector('.trow.now')||document.querySelector('.trow.viewing'); if(n) setTimeout(()=>n.scrollIntoView({block:'center'}),30); }
+  if(t==='route' && !routeScrolled && !$('#listView').hidden){ routeScrolled=true; const n=document.querySelector('.trow.now')||document.querySelector('.trow.viewing'); if(n) setTimeout(()=>n.scrollIntoView({block:'center'}),30); }
   else window.scrollTo({top:0});
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
@@ -656,7 +721,7 @@ async function initMap(){
 (function start(){
   const m=location.hash.match(/^#d-(\d{4}-\d{2}-\d{2})$/), ti=todayIndex();
   sel = (m&&IDX[m[1]]!==undefined) ? IDX[m[1]] : (ti!==null ? ti : (phase()==='after'?DAYS.length-1:0));
-  applyFs(); buildTimeline(); setTab('today'); render();
+  applyFs(); buildTimeline(); buildCalendar(); setView(store.get('rv')==='list'?'list':'cal'); setTab('today'); render();
   setInterval(()=>{ if(todayIndex()===sel) render(true); },60000);
   if(window.d3) initMap(); else $('#miniHost').insertAdjacentHTML('beforeend','<div class="maperr">המפה לא נטענה.</div>');
 })();
