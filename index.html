@@ -218,12 +218,17 @@ h2 svg{width:1.4rem;height:1.4rem;color:var(--accent);flex:none}
 #map{display:block;width:100%;height:100%;background:var(--sea)}
 #map.live{touch-action:none;cursor:grab}
 .mapwrap{position:relative;overflow:hidden;border-radius:1.2rem;border:1px solid var(--line);background:var(--sea)}
-.bighost{height:calc(100dvh - 19.5rem);min-height:18rem}
+.bighost{height:calc(100dvh - 23rem);min-height:16rem}
 body.maptab header.top{display:none}
 body.maptab .daynav{padding-top:.75rem}
-.maptools{position:absolute;top:.6rem;inset-inline-start:.6rem;display:flex;flex-direction:column;gap:.5rem;z-index:2}
-.maptools button{min-width:3rem;height:3rem;border-radius:.8rem;border:1px solid var(--line);background:var(--card);display:flex;align-items:center;justify-content:center;gap:.3rem;font-size:1.5rem;font-weight:700;padding:0 .6rem;box-shadow:0 2px 8px rgba(0,0,0,.12)}
-.maptools button.lbl{font-size:.9rem}
+.maptools{display:flex;flex-wrap:nowrap;gap:.4rem;margin-top:.6rem}
+html.big .maptools{flex-wrap:wrap}
+.maptools{justify-content:space-between}
+.maptools .zg{display:flex;gap:.4rem;min-width:0}
+.maptools button{min-width:3rem;height:3rem;border-radius:.8rem;border:1px solid var(--line);background:var(--card);display:flex;align-items:center;justify-content:center;gap:.3rem;font-size:1.5rem;font-weight:700;padding:0 .6rem;}
+.maptools button{height:2.75rem;min-width:2.75rem;color:var(--ink)}
+.maptools button.lbl{font-size:.92rem;font-weight:700;padding:0 .6rem;white-space:nowrap;min-width:0}
+@media (max-width:400px){.maptools button.lbl{font-size:.85rem;padding:0 .45rem;gap:.25rem} .maptools button.lbl svg{width:1rem;height:1rem}}
 .maptools button svg{width:1.2rem;height:1.2rem}
 .legend{display:flex;gap:.5rem 1.1rem;flex-wrap:wrap;color:var(--ink);font-size:.95rem;margin:.75rem .2rem 0}
 .legend span{display:inline-flex;align-items:center;gap:.4rem}
@@ -256,7 +261,7 @@ svg .clbl{font-family:var(--display);fill:var(--muted);opacity:.7}
   .tabs #tabMap{display:none}
   .layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(360px,.95fr);gap:1.25rem;align-items:start}
   .side{display:block;position:sticky;top:1rem}
-  .sidehost{height:calc(100vh - 15rem);min-height:24rem}
+  .sidehost{height:calc(100vh - 18.5rem);min-height:22rem}
   .mini{display:none}
 }
 </style>
@@ -600,12 +605,12 @@ document.querySelectorAll('.legendbox').forEach(b=>b.appendChild($('#legendTpl')
 let M = null;
 const svgEl = (()=>{ const s=document.createElementNS('http://www.w3.org/2000/svg','svg'); s.id='map'; s.setAttribute('role','img'); s.setAttribute('aria-label','מפת המסלול בדרום אמריקה'); return s; })();
 const tools = (()=>{ const t=document.createElement('div'); t.className='maptools';
-  t.innerHTML=`<button id="zin" aria-label="התקרבות">+</button><button id="zout" aria-label="התרחקות">−</button><button id="zday" class="lbl" aria-label="מיקוד על הדרך של היום המוצג">${icon('locate-fixed')}מיקוד ביום</button><button id="zall" class="lbl" aria-label="כל המסלול">${icon('maximize-2')}כל המסלול</button>`; return t; })();
+  t.innerHTML=`<span class="zg"><button id="zday" class="lbl" aria-label="מיקוד על הדרך של היום המוצג">${icon('locate-fixed')}מיקוד ביום</button><button id="zall" class="lbl" aria-label="כל המסלול">${icon('maximize-2')}כל המסלול</button></span><span class="zg"><button id="zin" aria-label="התקרבות">+</button><button id="zout" aria-label="התרחקות">−</button></span>`; return t; })();
 function placeMap(){
   const host = desktop() ? $('#sideHost') : tab==='map' ? $('#bigHost') : $('#miniHost');
   const live = desktop() || tab==='map';
   if(svgEl.parentNode!==host){ host.prepend(svgEl); }
-  if(live){ if(tools.parentNode!==host){ host.appendChild(tools); drawIcons(); } } else tools.remove();
+  if(live){ if(tools.previousElementSibling!==host){ host.after(tools); drawIcons(); } } else tools.remove();
   svgEl.classList.toggle('live',live); svgEl.style.pointerEvents = live?'':'none';
   if(M) requestAnimationFrame(()=>M.relayout(live));
 }
@@ -714,27 +719,24 @@ async function initMap(){
       today.attr('d',moved?segs.filter(s=>s.i===i).map(segPath).join(''):null).attr('stroke-dasharray',moved&&d.legs.some(l=>l.m==='flight')?'8 7':null);
       dots.attr('stroke',x=>IDX[x.d.d]<=i?'var(--accent)':'var(--border)');
       restyle(K);
-      const mini = !live;
-      if(moved){ const ss=segs.filter(s=>s.i===i); const xs=[prev.xy[0],q.xy[0],...ss.map(s=>proj([s.b.p.lon,s.b.p.lat])[0])], ys=[prev.xy[1],q.xy[1],...ss.map(s=>proj([s.b.p.lon,s.b.p.lat])[1])];
-        const pad=TK(d.p)?0.6:loop?12:40; flyTo([[Math.min(...xs)-pad,Math.min(...ys)-pad],[Math.max(...xs)+pad,Math.max(...ys)+pad]], TK(d.p)?(mini?40:120):(mini?14:40), instant); }
-      else { const r=TK(d.p)?0.8:60; flyTo([[q.xy[0]-r,q.xy[1]-r],[q.xy[0]+r,q.xy[1]+r]], TK(d.p)?(mini?40:120):(mini?6:12), instant); }
+      M.focus(i,instant);
     },
-    focus(){ // as close as possible while the whole of the day's way stays in view
-      const i=sel, d=DAYS[i], q=pts[i], prev=i>0?pts[i-1]:null;
+    focus(i=sel,instant){ // as close as possible while the whole of the day's way stays in view
+      const d=DAYS[i], q=pts[i], prev=i>0?pts[i-1]:null;
       const loop=(d.via||[]).length>0&&prev&&prev.d.p===d.p, moved=prev&&(prev.d.p!==d.p||loop);
       // every point with the room its name needs; the pin's own name is the widest
       let lw=0; try{ lw=pinL.node().getBBox().width*K; }catch(e){}
       const P0=[[q.xy[0],q.xy[1],Math.max(16,lw/2+8),30]];
-      if(moved){ const ss=segs.filter(s=>s.i===i); P0.push([prev.xy[0],prev.xy[1],26,22]);
-        ss.forEach(s=>{ const [x,y]=proj([s.b.p.lon,s.b.p.lat]); P0.push([x,y,26,22]); if(s.fly){ const [x0,y0]=proj([s.a.p.lon,s.a.p.lat]); P0.push([(x0+x)/2-(y-y0)*.18,(y0+y)/2+(x-x0)*.18,8,8]); } }); }
-      const w=W(), h=H(), tw = tools.isConnected ? tools.offsetWidth + 12 : 0, aw=w-tw-8, ah=h-16;
+      if(moved){ const ss=segs.filter(s=>s.i===i); P0.push([prev.xy[0],prev.xy[1],40,22]);
+        ss.forEach(s=>{ const [x,y]=proj([s.b.p.lon,s.b.p.lat]); P0.push([x,y,40,22]); if(s.fly){ const [x0,y0]=proj([s.a.p.lon,s.a.p.lat]); P0.push([(x0+x)/2-(y-y0)*.18,(y0+y)/2+(x-x0)*.18,8,8]); } }); }
+      const w=W(), h=H(), aw=w-16, ah=h-16-(live?0:52);   // the small map has its open button at the bottom
       const ext=k=>{ let a=1e9,b=-1e9,c=1e9,e=-1e9; P0.forEach(([x,y,mx,my])=>{ a=Math.min(a,k*x-mx); b=Math.max(b,k*x+mx); c=Math.min(c,k*y-my); e=Math.max(e,k*y+14); }); return [a,b,c,e]; };
       const fits=k=>{ const [a,b,c,e]=ext(k); return b-a<=aw && e-c<=ah; };
       const kMax = TK(d.p)? 300 : moved ? 250 : 90;            // a town alone: city level, not street level
       let lo=1, hi=kMax; if(fits(hi)) lo=hi; else for(let n=0;n<40;n++){ const m=(lo+hi)/2; if(fits(m)) lo=m; else hi=m; }
       const k=lo, [a,b,c,e]=ext(k);
-      const t=d3.zoomIdentity.translate(4+aw/2-(a+b)/2, 8+ah/2-(c+e)/2).scale(k);
-      (reduce?svg:svg.transition().duration(800)).call(zoom.transform,t);
+      const t=d3.zoomIdentity.translate(8+aw/2-(a+b)/2, 8+ah/2-(c+e)/2).scale(k);
+      (reduce||instant?svg:svg.transition().duration(800)).call(zoom.transform,t);
     },
     relayout(v){ if(v!==undefined) setLive(v); if(!node.clientWidth) return; project(); M.select(sel,true); },
     all(){ (reduce?svg:svg.transition().duration(700)).call(zoom.transform,d3.zoomIdentity); }
