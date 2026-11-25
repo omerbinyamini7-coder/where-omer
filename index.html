@@ -600,12 +600,12 @@ document.querySelectorAll('.legendbox').forEach(b=>b.appendChild($('#legendTpl')
 let M = null;
 const svgEl = (()=>{ const s=document.createElementNS('http://www.w3.org/2000/svg','svg'); s.id='map'; s.setAttribute('role','img'); s.setAttribute('aria-label','מפת המסלול בדרום אמריקה'); return s; })();
 const tools = (()=>{ const t=document.createElement('div'); t.className='maptools';
-  t.innerHTML=`<button id="zin" aria-label="התקרבות">+</button><button id="zout" aria-label="התרחקות">−</button><button id="zall" class="lbl" aria-label="כל המסלול">${icon('maximize-2')}כל המסלול</button>`; return t; })();
+  t.innerHTML=`<button id="zin" aria-label="התקרבות">+</button><button id="zout" aria-label="התרחקות">−</button><button id="zday" class="lbl" aria-label="מיקוד על הדרך של היום המוצג">${icon('locate-fixed')}מיקוד ביום</button><button id="zall" class="lbl" aria-label="כל המסלול">${icon('maximize-2')}כל המסלול</button>`; return t; })();
 function placeMap(){
   const host = desktop() ? $('#sideHost') : tab==='map' ? $('#bigHost') : $('#miniHost');
   const live = desktop() || tab==='map';
   if(svgEl.parentNode!==host){ host.prepend(svgEl); }
-  if(live){ if(tools.parentNode!==host) host.appendChild(tools); } else tools.remove();
+  if(live){ if(tools.parentNode!==host){ host.appendChild(tools); drawIcons(); } } else tools.remove();
   svgEl.classList.toggle('live',live); svgEl.style.pointerEvents = live?'':'none';
   if(M) requestAnimationFrame(()=>M.relayout(live));
 }
@@ -725,6 +725,7 @@ async function initMap(){
   tools.querySelector('#zin').onclick=()=>svg.transition().duration(300).call(zoom.scaleBy,1.8);
   tools.querySelector('#zout').onclick=()=>svg.transition().duration(300).call(zoom.scaleBy,1/1.8);
   tools.querySelector('#zall').onclick=()=>M.all();
+  tools.querySelector('#zday').onclick=()=>M.select(sel);
   let rt=0; window.addEventListener('resize',()=>{ clearTimeout(rt); rt=setTimeout(placeMap,150); });
   M.relayout(desktop()||tab==='map');
 }
