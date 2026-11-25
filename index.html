@@ -719,13 +719,30 @@ async function initMap(){
         const pad=TK(d.p)?0.6:loop?12:40; flyTo([[Math.min(...xs)-pad,Math.min(...ys)-pad],[Math.max(...xs)+pad,Math.max(...ys)+pad]], TK(d.p)?(mini?40:120):(mini?14:40), instant); }
       else { const r=TK(d.p)?0.8:60; flyTo([[q.xy[0]-r,q.xy[1]-r],[q.xy[0]+r,q.xy[1]+r]], TK(d.p)?(mini?40:120):(mini?6:12), instant); }
     },
+    focus(){ // as close as possible while the whole of the day's way stays in view
+      const i=sel, d=DAYS[i], q=pts[i], prev=i>0?pts[i-1]:null;
+      const loop=(d.via||[]).length>0&&prev&&prev.d.p===d.p, moved=prev&&(prev.d.p!==d.p||loop);
+      // every point with the room its name needs; the pin's own name is the widest
+      let lw=0; try{ lw=pinL.node().getBBox().width*K; }catch(e){}
+      const P0=[[q.xy[0],q.xy[1],Math.max(16,lw/2+8),30]];
+      if(moved){ const ss=segs.filter(s=>s.i===i); P0.push([prev.xy[0],prev.xy[1],26,22]);
+        ss.forEach(s=>{ const [x,y]=proj([s.b.p.lon,s.b.p.lat]); P0.push([x,y,26,22]); if(s.fly){ const [x0,y0]=proj([s.a.p.lon,s.a.p.lat]); P0.push([(x0+x)/2-(y-y0)*.18,(y0+y)/2+(x-x0)*.18,8,8]); } }); }
+      const w=W(), h=H(), tw = tools.isConnected ? tools.offsetWidth + 12 : 0, aw=w-tw-8, ah=h-16;
+      const ext=k=>{ let a=1e9,b=-1e9,c=1e9,e=-1e9; P0.forEach(([x,y,mx,my])=>{ a=Math.min(a,k*x-mx); b=Math.max(b,k*x+mx); c=Math.min(c,k*y-my); e=Math.max(e,k*y+14); }); return [a,b,c,e]; };
+      const fits=k=>{ const [a,b,c,e]=ext(k); return b-a<=aw && e-c<=ah; };
+      const kMax = TK(d.p)? 300 : moved ? 250 : 90;            // a town alone: city level, not street level
+      let lo=1, hi=kMax; if(fits(hi)) lo=hi; else for(let n=0;n<40;n++){ const m=(lo+hi)/2; if(fits(m)) lo=m; else hi=m; }
+      const k=lo, [a,b,c,e]=ext(k);
+      const t=d3.zoomIdentity.translate(4+aw/2-(a+b)/2, 8+ah/2-(c+e)/2).scale(k);
+      (reduce?svg:svg.transition().duration(800)).call(zoom.transform,t);
+    },
     relayout(v){ if(v!==undefined) setLive(v); if(!node.clientWidth) return; project(); M.select(sel,true); },
     all(){ (reduce?svg:svg.transition().duration(700)).call(zoom.transform,d3.zoomIdentity); }
   };
   tools.querySelector('#zin').onclick=()=>svg.transition().duration(300).call(zoom.scaleBy,1.8);
   tools.querySelector('#zout').onclick=()=>svg.transition().duration(300).call(zoom.scaleBy,1/1.8);
   tools.querySelector('#zall').onclick=()=>M.all();
-  tools.querySelector('#zday').onclick=()=>M.select(sel);
+  tools.querySelector('#zday').onclick=()=>M.focus();
   let rt=0; window.addEventListener('resize',()=>{ clearTimeout(rt); rt=setTimeout(placeMap,150); });
   M.relayout(desktop()||tab==='map');
 }
