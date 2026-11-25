@@ -91,7 +91,16 @@ h1{white-space:nowrap;font-family:var(--display);font-weight:400;font-size:2rem;
 .pick b{font-size:1.05rem;line-height:1.2}
 .pick span{white-space:nowrap;font-size:.8rem;color:var(--accent);font-weight:600;display:inline-flex;gap:.25rem;align-items:center}
 .pick span svg{width:.95rem;height:.95rem}
-.pick input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.pick{color:var(--ink);cursor:pointer}
+/* date picker popup: the trip calendar */
+.calpop{position:fixed;inset:0;z-index:100;background:rgba(5,20,25,.5);display:grid;place-items:center;padding:1rem}
+.calpop[hidden]{display:none}
+.calpop .cp{background:var(--bg);border-radius:1.2rem;width:min(40rem,100%);max-height:88dvh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.3);overflow:hidden}
+.calpop .cph{display:flex;align-items:center;justify-content:space-between;gap:.6rem;padding:.8rem 1rem;border-bottom:1px solid var(--line);background:var(--card)}
+.calpop .cph b{font-size:1.15rem}
+.calpop .cpx{border:0;background:transparent;width:2.75rem;height:2.75rem;border-radius:.8rem;display:grid;place-items:center;color:var(--ink)}
+.calpop .cpx svg{width:1.4rem;height:1.4rem}
+.calpop .cpb{overflow:auto;padding:1rem;display:grid;gap:1rem}
 
 /* cards */
 .card{background:var(--card);border:1px solid var(--line);border-radius:1.2rem;padding:1.1rem 1.15rem}
@@ -291,8 +300,7 @@ svg .clbl{font-family:var(--display);fill:var(--muted);opacity:.7}
 
       <nav class="daynav" id="daynav" aria-label="מעבר בין ימים">
         <button class="nb" id="prev"><i data-lucide="chevron-right"></i><span class="w">יום </span>קודם</button>
-        <label class="pick"><b id="dshort"></b><span><i data-lucide="calendar-days"></i>בחירת תאריך</span>
-          <input type="date" id="dpick" min="2026-11-27" max="2027-05-12" aria-label="בחירת תאריך"></label>
+        <button class="pick" id="pickBtn" aria-haspopup="dialog"><b id="dshort"></b><span><i data-lucide="calendar-days"></i>בחירת תאריך</span></button>
         <button class="nb" id="next"><span class="w">יום </span>הבא<i data-lucide="chevron-left"></i></button>
       </nav>
 
@@ -340,6 +348,11 @@ svg .clbl{font-family:var(--display);fill:var(--muted);opacity:.7}
       <div class="legendbox"></div>
     </aside>
   </div>
+</div>
+
+<div class="calpop" id="calPop" hidden role="dialog" aria-modal="true" aria-labelledby="cpT">
+  <div class="cp"><div class="cph"><b id="cpT">בחירת תאריך</b><button class="cpx" id="cpX" aria-label="סגירה"><i data-lucide="x"></i></button></div>
+  <div class="cpb"><div class="calkey" id="cpKey"></div><div class="months" id="cpMonths"></div></div></div>
 </div>
 
 <template id="legendTpl">
@@ -435,7 +448,6 @@ function render(noMap){
   const d=DAYS[sel], p=P[d.p], ti=todayIndex(), isToday=ti===sel, st=T.stages[stageOf(d.d)];
   const pd=dparts(d.d);
   $('#dshort').textContent = `יום ${WDS[pd.wd]} ${pd.d}.${pd.m}`;
-  $('#dpick').value = d.d;
   $('#prev').disabled = sel===0; $('#next').disabled = sel===DAYS.length-1;
   ribbon();
 
@@ -595,7 +607,18 @@ document.addEventListener('click',e=>{
   if(b.dataset.tabTo) setTab(b.dataset.tabTo); else window.scrollTo({top:0,behavior:'smooth'});
 });
 $('#prev').onclick=()=>go(sel-1); $('#next').onclick=()=>go(sel+1);
-$('#dpick').onchange=e=>{ const i=IDX[e.target.value]; if(i!==undefined) go(i); };
+function openPick(){
+  $('#cpKey').innerHTML = $('#calKey').innerHTML;
+  $('#cpMonths').innerHTML = $('#months').innerHTML.replace(/ data-tab-to="today"/g,'');
+  $('#cpMonths').querySelectorAll('.dcell.in').forEach(c=>c.classList.toggle('sel',c.dataset.d===DAYS[sel].d));
+  $('#calPop').hidden=false; document.body.style.overflow='hidden'; drawIcons();
+  const c=$('#cpMonths .dcell.sel'); if(c) c.closest('.month').scrollIntoView({block:'start'});
+  $('#cpX').focus();
+}
+function closePick(){ if($('#calPop').hidden) return; $('#calPop').hidden=true; document.body.style.overflow=''; $('#pickBtn').focus(); }
+$('#pickBtn').onclick=openPick; $('#cpX').onclick=closePick;
+$('#calPop').addEventListener('click',e=>{ if(e.target.id==='calPop') closePick(); else if(e.target.closest('[data-go]')) setTimeout(closePick,0); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closePick(); });
 $('#miniTap').onclick=$('#miniOpen').onclick=()=>setTab('map');
 document.addEventListener('keydown',e=>{ if(e.target.matches('input')) return; if(e.key==='ArrowLeft') go(sel+1); if(e.key==='ArrowRight') go(sel-1); });
 window.addEventListener('hashchange',()=>{ const m=location.hash.match(/^#d-(\d{4}-\d{2}-\d{2})$/); if(m&&IDX[m[1]]!==undefined&&IDX[m[1]]!==sel) go(IDX[m[1]]); });
